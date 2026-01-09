@@ -1,0 +1,18 @@
+web:
+  servers:
+    - id: ws-server
+      listen:
+        - "0.0.0.0:9090"
+
+services:
+  - listeners:
+      - type: websocket-stream
+        web_server: ws-server
+        path: "/tcp-ws"
+      - type: websocket-packet
+        web_server: ws-server
+        path: "/udp-ws"
+    keys:
+      - id: 1
+        cipher: chacha20-ietf-poly1305
+        secret: "change-this-secret-key-32chars"

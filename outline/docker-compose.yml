@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  outline-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: outline-ss-server
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config.yaml:/etc/outline/config.yaml:ro
+    environment:
+      - TZ=UTC
+    networks:
+      - outline-network
+
+networks:
+  outline-network:
+    driver: bridge
