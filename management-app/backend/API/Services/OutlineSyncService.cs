@@ -35,31 +35,6 @@ public class OutlineSyncService(
         }
     }
 
-    public async Task ReloadOutlineServerAsync()
-    {
-        try
-        {
-            // Since outline-ss-server watches the config file, we just need to touch it
-            // or in production, you might send a signal to the container
-            if (File.Exists(_appSettings.OutlineConfigPath))
-            {
-                File.SetLastWriteTimeUtc(_appSettings.OutlineConfigPath, DateTime.UtcNow);
-                
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Triggered Outline server reload");
-                }
-            }
-            
-            await Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to reload Outline server");
-            throw;
-        }
-    }
-
     private async Task WriteOutlineConfigAsync(List<Client> activeClients)
     {
         var yaml = BuildYamlConfig(activeClients);

@@ -371,6 +371,69 @@ start_services() {
     print_success "Services started"
 }
 
+# Setup config file watcher
+setup_config_watcher() {
+    print_step "Setting up config file watcher..."
+    
+    # Install inotify-tools if not present
+    if ! command -v inotifywait &> /dev/null; then
+        print_info "Installing inotify-tools..."
+        sudo apt-get update -qq
+        sudo apt-get install -y inotify-tools
+    fi
+    
+    # Create watcher script
+    cat > "$INSTALL_DIR/config-watcher.sh" <<'WATCHER_EOF'
+#!/bin/bash
+
+CONFIG_FILE="/opt/outline-manager/outline/config/config.yaml"
+CONTAINER_NAME="outline-server"
+
+echo "Config watcher started, monitoring: $CONFIG_FILE"
+
+# Monitor for file modifications
+inotifywait -m -e modify,close_write "$CONFIG_FILE" |
+while read -r directory events filename; do
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Config file changed, reloading Outline server..."
+    
+    # Send SIGHUP signal to outline-server container
+    if docker kill --signal=SIGHUP "$CONTAINER_NAME" 2>/dev/null; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Reload signal sent successfully"
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to send reload signal"
+    fi
+done
+WATCHER_EOF
+    
+    chmod +x "$INSTALL_DIR/config-watcher.sh"
+    
+    # Create systemd service
+    sudo tee /etc/systemd/system/outline-config-watcher.service > /dev/null <<SERVICE_EOF
+[Unit]
+Description=Outline Config File Watcher
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=$INSTALL_DIR/config-watcher.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:$INSTALL_DIR/config-watcher.log
+StandardError=append:$INSTALL_DIR/config-watcher.log
+
+[Install]
+WantedBy=multi-user.target
+SERVICE_EOF
+    
+    # Enable and start the service
+    sudo systemctl daemon-reload
+    sudo systemctl enable outline-config-watcher.service
+    sudo systemctl start outline-config-watcher.service
+    
+    print_success "Config watcher service configured and started"
+}
+
 # Setup cron jobs
 setup_cron_jobs() {
     print_step "Setting up cron jobs..."
@@ -464,6 +527,7 @@ main() {
     download_docker_compose
     generate_configurations
     start_services
+    setup_config_watcher
     setup_cron_jobs
     display_summary
 }

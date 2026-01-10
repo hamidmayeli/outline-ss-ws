@@ -71,7 +71,6 @@ public static class ClientEndpoints
         // Sync to outline server
         var allClients = await clientRepository.GetAllAsync();
         await outlineSyncService.SyncClientsToOutlineAsync(allClients);
-        await outlineSyncService.ReloadOutlineServerAsync();
 
         if (logger.IsEnabled(LogLevel.Debug))
         {
@@ -129,7 +128,6 @@ public static class ClientEndpoints
         // Sync to outline server
         var allClients = await clientRepository.GetAllAsync();
         await outlineSyncService.SyncClientsToOutlineAsync(allClients);
-        await outlineSyncService.ReloadOutlineServerAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
