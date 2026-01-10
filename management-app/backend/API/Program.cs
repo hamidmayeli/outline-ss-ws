@@ -80,7 +80,6 @@ if (app.Environment.IsDevelopment())
 }
 
 // Enable static files serving
-app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseCors();
@@ -107,7 +106,23 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
     .WithName("HealthCheck")
     .WithTags("Health");
 
-// Fallback to index.html for SPA routing
-app.MapFallbackToFile("index.html");
+// Serve home.html at root
+app.MapGet("/", () => Results.File("home.html", "text/html"))
+    .ExcludeFromDescription();
+
+// Fallback to index.html for SPA routing (for all non-API, non-static routes)
+app.MapFallback(context =>
+{
+    // Don't intercept API calls or static files
+    if (context.Request.Path.StartsWithSegments("/api") || 
+        context.Request.Path.StartsWithSegments("/assets") ||
+        context.Request.Path.Value?.Contains('.') == true)
+    {
+        return Task.CompletedTask;
+    }
+    
+    context.Response.ContentType = "text/html";
+    return context.Response.SendFileAsync("wwwroot/index.html");
+});
 
 app.Run();

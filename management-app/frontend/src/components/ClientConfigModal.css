@@ -1,0 +1,153 @@
+.config-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.config-info {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.config-info p {
+  margin: 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.config-info p:first-child {
+  margin-top: 0;
+}
+
+.config-info p:last-child {
+  margin-bottom: 0;
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.config-section h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+}
+
+.config-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.config-url-box {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  background: var(--bg-secondary);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.config-url-box code {
+  flex: 1;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background: none;
+}
+
+.btn-copy {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.btn-copy:hover {
+  background: var(--primary-hover);
+}
+
+.btn-copy.copied {
+  background: var(--success-color);
+}
+
+.config-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.config-item label {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.config-item code {
+  background: var(--bg-secondary);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  word-break: break-all;
+}
+
+.config-note {
+  background: var(--warning-bg);
+  color: var(--warning-color);
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  border-left: 4px solid var(--warning-color);
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-close {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-close:hover {
+  background: var(--bg-hover);
+}
+
+@media (max-width: 480px) {
+  .config-url-box {
+    flex-direction: column;
+  }
+
+  .btn-copy {
+    width: 100%;
+  }
+}
