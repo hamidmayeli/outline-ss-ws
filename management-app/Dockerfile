@@ -35,7 +35,7 @@ WORKDIR /sln
 RUN dotnet test ./OutlineManager.slnx
 
 # ============== Build Client  ============== 
-FROM node:24-slim AS build-client
+FROM node:25-slim AS build-client
 
 RUN apt-get update && apt-get install jq -y
 RUN npm install -g pnpm
