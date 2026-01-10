@@ -206,9 +206,16 @@ services:
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - JWT_SECRET=\${JWT_SECRET}
+      - ASPNETCORE_URLS=http://+:8080
+      - Jwt__SecretKey=${JWT_SECRET}
+      - AppSettings__Domain=\${DOMAIN}
+      - AppSettings__TcpPath=\${TCP_PATH}
+      - AppSettings__UdpPath=\${UDP_PATH}
+      - AppSettings__OutlineConfigPath=/etc/outline/config.yaml
+      - DataDirectory=/app/data
     volumes:
       - ./data:/app/data
+      - ./outline/config/config.yaml:/etc/outline/config.yaml
 
   nginx:
     image: nginx:alpine
@@ -217,6 +224,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
@@ -264,6 +272,8 @@ EOF
     cat > "$INSTALL_DIR/.env" <<EOF
 DOMAIN=$DOMAIN
 JWT_SECRET=$JWT_SECRET
+TCP_PATH=$TCP_PATH
+UDP_PATH=$UDP_PATH
 EOF
     
     # Create Nginx configuration

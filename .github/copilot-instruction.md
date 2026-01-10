@@ -20,6 +20,8 @@ A [minimal API with C# (Native AOT)](../management-app/backend/OutlineManager/Ou
 - An endpoint exposing the [Outline client config](../supporting-doc/clientConfig.md) (allows anonymous requests GET `/api/v1/config/{UserId}`).
 - Endpoints to create/edit/delete a users.
 - When a user created/deleted api updates the outline ss server config and trigger a reload for it.
+    > it should have write access to outline's config file.
+- Users data should be stored in the app database (JSON) but the outline server will be synced with it.
 
 ## Frontend
 A [React, Typescript, WPA](../management-app/frontend/outline-manager/) with the following features.
