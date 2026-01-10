@@ -27,6 +27,17 @@ A [React, Typescript, WPA](../management-api/frontend/outline-manager/) with the
 - List of users
 - CRUD on users
 
+## Installation script
+At the root of the repo there should be a script which:
+- Get a domain, email address and installation folder as the input parameters
+- It holds the different part of the scripts in functions
+- Log the progress with colors
+- Gets a TSL Cert
+- Creates a docker-compose ([docker compose](/deployables/docker-compose.yaml) should leave as a separated fill and it will be downloaded)
+- Run the docker compose up -d
+- Creates cron jobs too [update the docker images](/deployables/update.sh) and [renew certs](/deployables/renew-cert.sh) (if renewal need a corn job)
+- Sets the firewall
+
 # Implementation
 For outline server and reverse proxy you can get the idea of how to do it in [ss-over-ws.sh](../supporting-doc/ss-over-ws.sh).
 

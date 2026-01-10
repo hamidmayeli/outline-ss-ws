@@ -1,0 +1,33 @@
+services:
+  outline-server:
+    image: outline-ss-server:latest
+    container_name: outline-server
+    restart: unless-stopped
+    volumes:
+      - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
+
+  management-api:
+    image: hamidmayeli/outline-manager-api:latest
+    container_name: management-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ./data:/app/data
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    networks:
+      - outline-network
+    depends_on:
+      - outline-server
+      - management-api
