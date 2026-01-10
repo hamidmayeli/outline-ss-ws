@@ -194,14 +194,14 @@ create_default_docker_compose() {
     cat > docker-compose.yaml <<EOF
 services:
   outline-server:
-    image: outline-ss-server:latest
+    image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
     restart: unless-stopped
     volumes:
       - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
 
   management-app:
-    image: hamidmayeli/outline-manager-api:latest
+    image: hamidmayeli/outline-manager:latest
     container_name: management-app
     restart: unless-stopped
     environment:

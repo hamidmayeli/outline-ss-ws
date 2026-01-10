@@ -1,0 +1,58 @@
+name: Build and Push Management App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'management-app/**'
+      - '.github/workflows/build-management-app.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'management-app/**'
+      - '.github/workflows/build-management-app.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Test API
+      working-directory: management-app
+      run: docker build --target test-api .
+
+    - name: Build client
+      working-directory: management-app
+      run: docker build --target build-client .
+
+    - name: Log in to Docker Hub
+      id: login
+      if: github.actor != 'dependabot[bot]'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker image (main)
+      if: steps.login.outcome == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/build-push-action@v6
+      with:
+        context: ./management-app
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/outline-manager:latest
+
+    - name: Build and push Docker image (PR)
+      if: steps.login.outcome == 'success' && github.event_name == 'pull_request'
+      uses: docker/build-push-action@v6
+      with:
+        context: ./management-app
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/outline-manager:pr-${{ github.event.number }}
