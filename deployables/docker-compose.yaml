@@ -6,9 +6,9 @@ services:
     volumes:
       - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
 
-  management-api:
+  management-app:
     image: hamidmayeli/outline-manager-api:latest
-    container_name: management-api
+    container_name: management-app
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -30,4 +30,4 @@ services:
       - outline-network
     depends_on:
       - outline-server
-      - management-api
+      - management-app

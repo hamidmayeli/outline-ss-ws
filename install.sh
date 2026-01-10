@@ -200,9 +200,9 @@ services:
     volumes:
       - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
 
-  management-api:
+  management-app:
     image: hamidmayeli/outline-manager-api:latest
-    container_name: management-api
+    container_name: management-app
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -224,7 +224,7 @@ services:
       - outline-network
     depends_on:
       - outline-server
-      - management-api
+      - management-app
 EOF
 }
 
@@ -312,7 +312,7 @@ server {
 
     # Management API
     location /api/ {
-        proxy_pass http://management-api:8080/api/;
+        proxy_pass http://management-app:8080/api/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -322,7 +322,7 @@ server {
 
     # Frontend
     location / {
-        proxy_pass http://management-api:8080/;
+        proxy_pass http://management-app:8080/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;

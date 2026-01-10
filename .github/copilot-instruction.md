@@ -14,7 +14,7 @@ The outline server is a docker file created in this repo. It should install late
 # Management app
 
 ## Backend
-A [minimal API with C# (Native AOT)](../management-api/backend/OutlineManager/OutlineManager.slnx) having the following features:
+A [minimal API with C# (Native AOT)](../management-app/backend/OutlineManager/OutlineManager.slnx) having the following features:
 - Data will be stored in JSON
 - An authentication with JWT
 - An endpoint exposing the [Outline client config](../supporting-doc/clientConfig.md) (allows anonymous requests GET `/api/v1/config/{UserId}`).
@@ -22,7 +22,7 @@ A [minimal API with C# (Native AOT)](../management-api/backend/OutlineManager/Ou
 - When a user created/deleted api updates the outline ss server config and trigger a reload for it.
 
 ## Frontend
-A [React, Typescript, WPA](../management-api/frontend/outline-manager/) with the following features.
+A [React, Typescript, WPA](../management-app/frontend/outline-manager/) with the following features.
 - Login
 - List of users
 - CRUD on users
@@ -46,5 +46,5 @@ For the management app you can look into [outline-config-server](https://github.
 - The code should be human readable and follow the best practices.
 
 ## CI/CD
-- Any change in [management-api](/management-api/) should build its [dockerfile](/management-api/Dockerfile) and push it the DockerHub.
+- Any change in [management-app](/management-app/) should build its [dockerfile](/management-app/Dockerfile) and push it the DockerHub.
 - Outline SS docker build should be triggered manually.
