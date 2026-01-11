@@ -87,7 +87,10 @@ verify_domain() {
 install_prerequisites() {
     print_step "Installing system prerequisites..."
     
+    # Update package list
     sudo apt update
+    
+    # Install basic dependencies
     sudo apt install -y \
         curl \
         wget \
@@ -95,10 +98,31 @@ install_prerequisites() {
         nginx \
         certbot \
         python3-certbot-nginx \
-        docker.io \
-        docker-compose \
         openssl \
-        ufw
+        ufw \
+        ca-certificates \
+        gnupg \
+        lsb-release
+    
+    # Install Docker from official repository
+    print_info "Installing Docker from official repository..."
+    
+    # Remove old Docker versions if any
+    sudo apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+    
+    # Add Docker's official GPG key
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    
+    # Add Docker repository
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    # Update and install Docker Engine with Compose plugin
+    sudo apt update
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
     # Start and enable Docker
     sudo systemctl start docker
@@ -107,7 +131,10 @@ install_prerequisites() {
     # Add current user to docker group
     sudo usermod -aG docker $USER
     
-    print_success "Prerequisites installed"
+    # Verify Docker Compose v2 installation
+    docker compose version
+    
+    print_success "Prerequisites installed (Docker with Compose v2)"
 }
 
 # Configure firewall
@@ -228,8 +255,6 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
-    networks:
-      - outline-network
     depends_on:
       - outline-server
       - management-app
@@ -365,8 +390,8 @@ start_services() {
     sudo systemctl stop nginx
     
     # Start Docker Compose
-    docker-compose pull
-    docker-compose up -d
+    docker compose pull
+    docker compose up -d
     
     print_success "Services started"
 }
@@ -446,8 +471,8 @@ setup_cron_jobs() {
         cat > "$INSTALL_DIR/update.sh" <<'EOF'
 #!/bin/bash
 cd /opt/outline-manager
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 docker image prune -f
 EOF
         chmod +x "$INSTALL_DIR/update.sh"
@@ -460,7 +485,7 @@ EOF
         print_info "Creating default cert renewal script..."
         cat > "$INSTALL_DIR/renew-cert.sh" <<'EOF'
 #!/bin/bash
-certbot renew --quiet --post-hook "docker-compose -f /opt/outline-manager/docker-compose.yaml restart nginx"
+certbot renew --quiet --post-hook "docker compose -f /opt/outline-manager/docker-compose.yaml restart nginx"
 EOF
         chmod +x "$INSTALL_DIR/renew-cert.sh"
     fi
@@ -490,10 +515,10 @@ display_summary() {
     echo "Installation directory: $INSTALL_DIR"
     echo ""
     print_info "Useful commands:"
-    echo "  View logs: docker-compose -f $INSTALL_DIR/docker-compose.yaml logs -f"
-    echo "  Restart: docker-compose -f $INSTALL_DIR/docker-compose.yaml restart"
-    echo "  Stop: docker-compose -f $INSTALL_DIR/docker-compose.yaml down"
-    echo "  Start: docker-compose -f $INSTALL_DIR/docker-compose.yaml up -d"
+    echo "  View logs: docker compose -f $INSTALL_DIR/docker-compose.yaml logs -f"
+    echo "  Restart: docker compose -f $INSTALL_DIR/docker-compose.yaml restart"
+    echo "  Stop: docker compose -f $INSTALL_DIR/docker-compose.yaml down"
+    echo "  Start: docker compose -f $INSTALL_DIR/docker-compose.yaml up -d"
     echo ""
     print_info "Configuration files:"
     echo "  Outline: $INSTALL_DIR/outline/config/config.yaml"

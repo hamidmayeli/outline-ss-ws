@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using OutlineManager.API.DTOs;
 using OutlineManager.API.Interfaces;
 using OutlineManager.API.Models;
 
@@ -17,7 +18,7 @@ public static class ConfigEndpoints
             return group;
         }
     }
-    private static async Task<Results<Ok<string>, NotFound>> GetConfigAsync(
+    private static async Task<Results<Ok<ConfigResponse>, NotFound>> GetConfigAsync(
         string clientId,
         IClientRepository clientRepository,
         AppSettings appSettings)
@@ -27,32 +28,40 @@ public static class ConfigEndpoints
         if (client == null || !client.IsActive)
             return TypedResults.NotFound();
 
-        var config = BuildYamlConfig(client, appSettings);
+        var config = BuildConfig(client, appSettings);
 
         return TypedResults.Ok(config);
     }
 
-    private static string BuildYamlConfig(Client client, AppSettings appSettings)
-    {
-        var tcpUrl = $"wss://{appSettings.Domain}{appSettings.TcpPath}";
-        var udpUrl = $"wss://{appSettings.Domain}{appSettings.UdpPath}";
-
-        return $@"transport:
-  $type: tcpudp
-  tcp:
-    $type: shadowsocks
-    endpoint:
-      $type: websocket
-      url: {tcpUrl}
-    cipher: {client.Cipher}
-    secret: {client.Secret}
-  udp:
-    $type: shadowsocks
-    endpoint:
-      $type: websocket
-      url: {udpUrl}
-    cipher: {client.Cipher}
-    secret: {client.Secret}
-";
-    }
+    private static ConfigResponse BuildConfig(Client client, AppSettings appSettings)
+        => new ()
+        {
+          Transport = new()
+          {
+              Type = "tcpudp",
+              Tcp = new ()
+              {
+                  Type = "shadowsocks",
+                  Endpoint = new()
+                  {
+                      Type = "websocket",
+                      Url = $"wss://{appSettings.Domain}{appSettings.TcpPath}",
+                  },
+                  Cipher = client.Cipher,
+                  Secret = client.Secret,
+              },
+              Udp = new()
+              {
+                  
+                  Type = "shadowsocks",
+                  Endpoint = new()
+                  {
+                      Type = "websocket",
+                      Url = $"wss://{appSettings.Domain}{appSettings.UdpPath}",
+                  },
+                  Cipher = client.Cipher,
+                  Secret = client.Secret,
+              },
+          }  
+        };
 }

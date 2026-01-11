@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace OutlineManager.API.DTOs;
 
 public class ConfigResponse
@@ -7,6 +9,7 @@ public class ConfigResponse
 
 public class TransportConfig
 {
+    [JsonPropertyName("$type")]
     public string Type { get; set; } = "tcpudp";
     
     public required ShadowsocksConfig Tcp { get; set; }
@@ -16,6 +19,7 @@ public class TransportConfig
 
 public class ShadowsocksConfig
 {
+    [JsonPropertyName("$type")]
     public string Type { get; set; } = "shadowsocks";
     
     public required EndpointConfig Endpoint { get; set; }
@@ -27,6 +31,7 @@ public class ShadowsocksConfig
 
 public class EndpointConfig
 {
+    [JsonPropertyName("$type")]
     public string Type { get; set; } = "websocket";
     
     public required string Url { get; set; }

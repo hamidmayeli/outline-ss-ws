@@ -1,0 +1,47 @@
+{
+  "name": "Outline Config Server - Backend",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "k--kato.docomment",
+        "formulahendry.dotnet-test-explorer",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "omnisharp.useModernNet": true,
+        "dotnet.server.useOmnisharp": false
+      }
+    }
+  },
+
+  "forwardPorts": [5000, 5001],
+  "portsAttributes": {
+    "5000": {
+      "label": "Backend HTTP",
+      "onAutoForward": "notify"
+    },
+    "5001": {
+      "label": "Backend HTTPS",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "dotnet dev-certs https --trust && dotnet restore",
+  
+  "remoteUser": "vscode",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}

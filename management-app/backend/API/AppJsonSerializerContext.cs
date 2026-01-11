@@ -17,6 +17,10 @@ namespace OutlineManager.API;
 [JsonSerializable(typeof(ClientResponse))]
 [JsonSerializable(typeof(IEnumerable<ClientResponse>))]
 [JsonSerializable(typeof(IEnumerable<LoginRequest>))]
+[JsonSerializable(typeof(ConfigResponse))]
+[JsonSerializable(typeof(TransportConfig))]
+[JsonSerializable(typeof(ShadowsocksConfig))]
+[JsonSerializable(typeof(EndpointConfig))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }
