@@ -48,7 +48,7 @@
     }
   },
 
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install -g pnpm && pnpm install",
   
   "remoteUser": "node",
   
