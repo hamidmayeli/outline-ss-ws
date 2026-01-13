@@ -21,7 +21,6 @@ public static class ConfigEndpoints
     private static async Task<Results<Ok<ConfigResponse>, NotFound>> GetConfigAsync(
         string clientId,
         IClientRepository clientRepository,
-        IIPResolver ipResolver,
         AppSettings appSettings)
     {
         var client = await clientRepository.GetByIdAsync(clientId);
@@ -29,15 +28,13 @@ public static class ConfigEndpoints
         if (client == null || !client.IsActive)
             return TypedResults.NotFound();
 
-        var config = await BuildConfig(client, appSettings, ipResolver);
+        var config = await BuildConfig(client, appSettings);
 
         return TypedResults.Ok(config);
     }
 
-    private static async Task<ConfigResponse> BuildConfig(Client client, AppSettings appSettings, IIPResolver ipResolver)
+    private static async Task<ConfigResponse> BuildConfig(Client client, AppSettings appSettings)
     {
-        var ipAddress = await ipResolver.ResolveAsync(appSettings.Domain);
-
         return new()
         {
             Transport = new()
@@ -49,7 +46,7 @@ public static class ConfigEndpoints
                     Endpoint = new()
                     {
                         Type = "websocket",
-                        Url = $"wss://{ipAddress}{appSettings.TcpPath}",
+                        Url = $"wss://{appSettings.Domain}{appSettings.TcpPath}",
                     },
                     Cipher = client.Cipher,
                     Secret = client.Secret,
@@ -61,7 +58,7 @@ public static class ConfigEndpoints
                     Endpoint = new()
                     {
                         Type = "websocket",
-                        Url = $"wss://{ipAddress}{appSettings.UdpPath}",
+                        Url = $"wss://{appSettings.Domain}{appSettings.UdpPath}",
                     },
                     Cipher = client.Cipher,
                     Secret = client.Secret,

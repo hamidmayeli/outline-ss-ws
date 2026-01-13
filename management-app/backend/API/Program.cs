@@ -53,7 +53,6 @@ builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IClientRepository, ClientRepository>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IOutlineSyncService, OutlineSyncService>();
-builder.Services.AddSingleton<IIPResolver, IPResolver>();
 
 // Add CORS
 builder.Services.AddCors(options =>
