@@ -6,6 +6,11 @@ namespace OutlineManager.API.Tests.TestCases;
 
 public class UserIntractsWithConfigs : TestCaseBase
 {
+    public UserIntractsWithConfigs()
+    {
+        _fixture.MockIPResolver.ResolveAsync("sample.com")
+            .Returns("1.2.3.4");
+    }
 
     [Fact]
     public async Task When_id_does_not_exist()
@@ -25,9 +30,6 @@ public class UserIntractsWithConfigs : TestCaseBase
     [Fact]
     public async Task When_id_does_exists()
     {
-        _fixture.MockIPResolver.ResolveAsync("sample.com")
-            .Returns("1.2.3.4");
-
         var clientId = Guid.NewGuid().ToString();
 
         await _fixture.SetClient(new Client
@@ -46,5 +48,44 @@ public class UserIntractsWithConfigs : TestCaseBase
         var content = await response.Content.ReadAsStringAsync();
         var expectedContent = """{"transport":{"$type":"tcpudp","tcp":{"$type":"shadowsocks","endpoint":{"$type":"websocket","url":"wss://1.2.3.4/tcp-ws"},"cipher":"chacha20-ietf-poly1305","secret":"secret"},"udp":{"$type":"shadowsocks","endpoint":{"$type":"websocket","url":"wss://1.2.3.4/udp-ws"},"cipher":"chacha20-ietf-poly1305","secret":"secret"}}}""";
         Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public async Task When_GetConfig_WithInactiveClient_ReturnsNotFound()
+    {
+        var clientId = Guid.NewGuid().ToString();
+
+        await _fixture.SetClient(new Client
+        {
+            Id = clientId,
+            Name = "InactiveClient",
+            Secret = "secret",
+            IsActive = false
+        });
+
+        var client = _fixture.CreateClient();
+
+        var response = await client.GetAsync($"/api/v1/config/{clientId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task When_GetConfig_NoAuthRequired_AllowsAnonymousAccess()
+    {
+        var clientId = Guid.NewGuid().ToString();
+
+        await _fixture.SetClient(new Client
+        {
+            Id = clientId,
+            Name = "name",
+            Secret = "secret"
+        });
+
+        var client = _fixture.CreateClient();
+
+        var response = await client.GetAsync($"/api/v1/config/{clientId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

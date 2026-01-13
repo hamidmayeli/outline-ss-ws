@@ -67,4 +67,22 @@ public class TestFixture : WebApplicationFactory<Program>
         var json = JsonSerializer.Serialize(clients);
         return File.WriteAllTextAsync(filePath, json);
     }
+
+    public Task SetUsers(params IEnumerable<User> users)
+    {
+        var filePath = Path.Combine(_dataDirectory, "users.json");
+        var json = JsonSerializer.Serialize(users);
+        return File.WriteAllTextAsync(filePath, json);
+    }
+
+    public HttpClient GetAuthenticatedClient()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid().ToString(),
+            Username = "testuser",
+            PasswordHash = "hashedpassword"
+        };
+        return GetHttpClient(user);
+    }
 }
