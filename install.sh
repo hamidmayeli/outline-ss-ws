@@ -61,14 +61,56 @@ fi
 verify_domain() {
     print_step "Verifying domain DNS configuration..."
     
-    SERVER_IP=$(curl -s ifconfig.me || curl -s icanhazip.com)
-    DOMAIN_IP=$(dig +short "$DOMAIN" | tail -n1)
+    # Try multiple IP detection services
+    print_info "Detecting server IP address..."
+    SERVER_IP=""
+    
+    # List of IP detection services to try
+    IP_SERVICES=(
+        "https://api.ipify.org"
+        "https://icanhazip.com"
+        "https://ifconfig.me/ip"
+        "https://checkip.amazonaws.com"
+        "https://ipecho.net/plain"
+        "https://myexternalip.com/raw"
+    )
+    
+    for service in "${IP_SERVICES[@]}"; do
+        IP=$(curl -4 -s --max-time 5 "$service" 2>/dev/null | tr -d '[:space:]')
+        
+        # Validate that response is an IPv4 address
+        if [[ $IP =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            SERVER_IP="$IP"
+            print_info "Server IP detected: $SERVER_IP (from $service)"
+            break
+        fi
+    done
+    
+    if [[ -z "$SERVER_IP" ]]; then
+        print_error "Failed to detect server IP address!"
+        print_error "All IP detection services failed or returned invalid responses."
+        print_info "Please manually verify your server's public IP and domain DNS configuration."
+        read -p "Enter your server's public IP address manually: " MANUAL_IP
+        
+        if [[ $MANUAL_IP =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            SERVER_IP="$MANUAL_IP"
+        else
+            print_error "Invalid IP address format!"
+            exit 1
+        fi
+    fi
+    
+    # Resolve domain
+    print_info "Resolving domain: $DOMAIN"
+    DOMAIN_IP=$(dig +short "$DOMAIN" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | tail -n1)
     
     if [[ -z "$DOMAIN_IP" ]]; then
         print_error "Could not resolve domain: $DOMAIN"
         print_error "Please ensure your domain's DNS A record is configured correctly."
         exit 1
     fi
+    
+    print_info "Domain resolves to: $DOMAIN_IP"
     
     if [[ "$SERVER_IP" != "$DOMAIN_IP" ]]; then
         print_error "Domain DNS mismatch!"
