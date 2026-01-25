@@ -3,6 +3,8 @@ services:
     image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
     restart: unless-stopped
+    ports:
+      - "9091:9091"
     volumes:
       - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
 

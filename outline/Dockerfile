@@ -30,7 +30,8 @@ RUN mkdir -p /etc/outline
 
 # Expose ports
 # 9090 for the web server (WebSocket connections)
-EXPOSE 9090
+# 9091 for Prometheus metrics
+EXPOSE 9090 9091
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -40,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 WORKDIR /etc/outline
 
 # Run outline-ss-server
-CMD ["/usr/local/bin/outline-ss-server", "-config", "/etc/outline/config.yaml"]
+CMD ["/usr/local/bin/outline-ss-server", "-config", "/etc/outline/config.yaml", "-metrics", "0.0.0.0:9091"]
