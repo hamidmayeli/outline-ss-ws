@@ -21,7 +21,7 @@ public class TestFixture : WebApplicationFactory<Program>
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 { "DataDirectory", _dataDirectory },
-                { "AppSettings:PrometheusUrl", "http://mock-prometheus:9091" }
+                { "AppSettings:PrometheusUrl", "http://mock-prometheus:9091/" }
             })
             .Build();
 

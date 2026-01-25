@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using OutlineManager.API.DTOs;
 using OutlineManager.API.Interfaces;
 using OutlineManager.API.Models;
@@ -25,23 +26,13 @@ public class MetricsService : IMetricsService
     {
         try
         {
-            // Query Prometheus for the last 30 days of data
-            var endTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var startTime = DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeSeconds();
-
-            // Get total bytes transferred
-            var bytesQuery = $"increase(shadowsocks_data_bytes{{access_key=\"{clientId}\"}}[30d])";
-            var bytesData = await QueryPrometheusAsync(bytesQuery);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Fetching usage for client: {ClientId}", clientId);
+            }
             
-            // Get tunnel time
-            var tunnelQuery = $"shadowsocks_tunnel_time_seconds{{access_key=\"{clientId}\"}}";
-            var tunnelData = await QueryPrometheusAsync(tunnelQuery);
-            
-            // Get connections
-            var connectionsQuery = $"increase(shadowsocks_tcp_connections_closed{{access_key=\"{clientId}\"}}[30d])";
-            var connectionsData = await QueryPrometheusAsync(connectionsQuery);
-
-            return ParseClientUsage(bytesData, tunnelData, connectionsData);
+            var metricsText = await FetchRawMetricsAsync();
+            return ParseClientUsageFromRawMetrics(metricsText, clientId);
         }
         catch (Exception ex)
         {
@@ -55,36 +46,29 @@ public class MetricsService : IMetricsService
         try
         {
             var clients = await _clientRepository.GetAllAsync();
+            var metricsText = await FetchRawMetricsAsync();
             var responses = new List<HourlyUsageResponse>();
 
             foreach (var client in clients)
             {
-                var dataPoints = new List<HourlyDataPoint>();
-                var endTime = DateTime.UtcNow;
-
-                for (int i = 0; i < hours; i++)
-                {
-                    var timestamp = endTime.AddHours(-i);
-                    var query = $"increase(shadowsocks_data_bytes{{access_key=\"{client.Id}\"}}[1h])";
-                    
-                    // For simplicity, we'll get current values. 
-                    // In production, you'd want to use range queries
-                    var data = await QueryPrometheusAsync(query);
-                    var bytes = ParseTotalBytes(data);
-
-                    dataPoints.Add(new HourlyDataPoint
-                    {
-                        Timestamp = timestamp,
-                        BytesTransferred = bytes,
-                        Connections = 0 // Can be enhanced with connection metrics
-                    });
-                }
-
+                var usage = ParseClientUsageFromRawMetrics(metricsText, client.Id);
+                
+                // Note: Raw metrics give us current counters, not historical hourly data
+                // For proper hourly data, you'd need Prometheus with historical storage
+                // For now, we return current usage as a single data point
                 responses.Add(new HourlyUsageResponse
                 {
                     ClientId = client.Id,
                     ClientName = client.Name,
-                    DataPoints = dataPoints.OrderBy(d => d.Timestamp).ToList()
+                    DataPoints = new List<HourlyDataPoint>
+                    {
+                        new HourlyDataPoint
+                        {
+                            Timestamp = DateTime.UtcNow,
+                            BytesTransferred = usage.TotalBytesTransferred,
+                            Connections = usage.TotalConnections
+                        }
+                    }
                 });
             }
 
@@ -102,38 +86,31 @@ public class MetricsService : IMetricsService
         try
         {
             var clients = await _clientRepository.GetAllAsync();
+            var metricsText = await FetchRawMetricsAsync();
             var responses = new List<DailyUsageResponse>();
 
             foreach (var client in clients)
             {
-                var dataPoints = new List<DailyDataPoint>();
-                var endDate = DateTime.UtcNow.Date;
-
-                for (int i = 0; i < days; i++)
-                {
-                    var date = endDate.AddDays(-i);
-                    
-                    // Query for bytes in that day
-                    var bytesQuery = $"increase(shadowsocks_data_bytes{{access_key=\"{client.Id}\"}}[1d])";
-                    var bytesData = await QueryPrometheusAsync(bytesQuery);
-                    
-                    var (uploaded, downloaded) = ParseUploadDownload(bytesData);
-
-                    dataPoints.Add(new DailyDataPoint
-                    {
-                        Date = date,
-                        BytesTransferred = uploaded + downloaded,
-                        BytesUploaded = uploaded,
-                        BytesDownloaded = downloaded,
-                        Connections = 0 // Can be enhanced
-                    });
-                }
-
+                var usage = ParseClientUsageFromRawMetrics(metricsText, client.Id);
+                
+                // Note: Raw metrics give us current counters, not historical daily data
+                // For proper daily data, you'd need Prometheus with historical storage
+                // For now, we return current usage as a single data point
                 responses.Add(new DailyUsageResponse
                 {
                     ClientId = client.Id,
                     ClientName = client.Name,
-                    DataPoints = dataPoints.OrderBy(d => d.Date).ToList()
+                    DataPoints = new List<DailyDataPoint>
+                    {
+                        new DailyDataPoint
+                        {
+                            Date = DateTime.UtcNow.Date,
+                            BytesTransferred = usage.TotalBytesTransferred,
+                            BytesUploaded = usage.BytesUploaded,
+                            BytesDownloaded = usage.BytesDownloaded,
+                            Connections = usage.TotalConnections
+                        }
+                    }
                 });
             }
 
@@ -146,117 +123,99 @@ public class MetricsService : IMetricsService
         }
     }
 
-    private async Task<string> QueryPrometheusAsync(string query)
+    private async Task<string> FetchRawMetricsAsync()
     {
-        var response = await _httpClient.GetAsync($"/api/v1/query?query={Uri.EscapeDataString(query)}");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
+        try
+        {
+            var url = "/metrics";
+            
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Fetching raw metrics from: {BaseAddress}{Path}", _httpClient.BaseAddress, url);
+            }
+            
+            var response = await _httpClient.GetAsync(url);
+            
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Metrics response status: {StatusCode}", response.StatusCode);
+            }
+            
+            response.EnsureSuccessStatusCode();
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Metrics response length: {Length} bytes", content.Length);
+            }
+            
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch raw metrics");
+            throw;
+        }
     }
 
-    private ClientUsageResponse ParseClientUsage(string bytesData, string tunnelData, string connectionsData)
+    private ClientUsageResponse ParseClientUsageFromRawMetrics(string metricsText, string clientId)
     {
         var usage = new ClientUsageResponse();
 
         try
         {
-            var bytesDoc = JsonDocument.Parse(bytesData);
-            var results = bytesDoc.RootElement.GetProperty("data").GetProperty("result");
+            // Parse shadowsocks_data_bytes for the client
+            // Format: shadowsocks_data_bytes{access_key="client-id",dir="c<-p"} 12345
+            var bytesPattern = $@"shadowsocks_data_bytes{{access_key=""{Regex.Escape(clientId)}"",dir=""([^""]+)""}} ([0-9.]+)";
+            var bytesMatches = Regex.Matches(metricsText, bytesPattern);
 
             long totalUp = 0, totalDown = 0;
 
-            foreach (var result in results.EnumerateArray())
+            foreach (Match match in bytesMatches)
             {
-                var metric = result.GetProperty("metric");
-                var direction = metric.GetProperty("dir").GetString() ?? "";
-                var value = result.GetProperty("value")[1].GetString() ?? "0";
-                var bytes = long.Parse(value.Split('.')[0]);
+                var direction = match.Groups[1].Value;
+                var value = long.Parse(match.Groups[2].Value.Split('.')[0]);
 
-                if (direction.Contains(">")) // Upload direction (c>p, p>t)
-                    totalUp += bytes;
-                else if (direction.Contains("<")) // Download direction (c<p, p<t)
-                    totalDown += bytes;
+                if (direction.Contains(">")) // Upload: c>p or p>t
+                    totalUp += value;
+                else if (direction.Contains("<")) // Download: c<p or t<p
+                    totalDown += value;
             }
 
             usage.BytesUploaded = totalUp;
             usage.BytesDownloaded = totalDown;
             usage.TotalBytesTransferred = totalUp + totalDown;
 
-            // Parse tunnel time
-            var tunnelDoc = JsonDocument.Parse(tunnelData);
-            var tunnelResults = tunnelDoc.RootElement.GetProperty("data").GetProperty("result");
-            if (tunnelResults.GetArrayLength() > 0)
+            // Parse shadowsocks_tunnel_time_seconds
+            var tunnelPattern = $@"shadowsocks_tunnel_time_seconds{{access_key=""{Regex.Escape(clientId)}""}} ([0-9.]+)";
+            var tunnelMatch = Regex.Match(metricsText, tunnelPattern);
+            if (tunnelMatch.Success)
             {
-                var tunnelValue = tunnelResults[0].GetProperty("value")[1].GetString() ?? "0";
-                usage.TunnelTimeSeconds = double.Parse(tunnelValue);
+                usage.TunnelTimeSeconds = double.Parse(tunnelMatch.Groups[1].Value);
             }
 
-            // Parse connections
-            var connectionsDoc = JsonDocument.Parse(connectionsData);
-            var connResults = connectionsDoc.RootElement.GetProperty("data").GetProperty("result");
+            // Parse shadowsocks_tcp_connections_closed
+            var connectionsPattern = $@"shadowsocks_tcp_connections_closed{{access_key=""{Regex.Escape(clientId)}"",status=""([^""]+)""}} ([0-9.]+)";
+            var connectionsMatches = Regex.Matches(metricsText, connectionsPattern);
+            
             int totalConns = 0;
-            foreach (var result in connResults.EnumerateArray())
+            foreach (Match match in connectionsMatches)
             {
-                var value = result.GetProperty("value")[1].GetString() ?? "0";
-                totalConns += int.Parse(value.Split('.')[0]);
+                totalConns += int.Parse(match.Groups[2].Value.Split('.')[0]);
             }
             usage.TotalConnections = totalConns;
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Parsed usage for {ClientId}: {Upload}↑ {Download}↓ {Connections} conns", 
+                    clientId, usage.BytesUploaded, usage.BytesDownloaded, usage.TotalConnections);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to parse Prometheus response");
+            _logger.LogError(ex, "Failed to parse raw metrics for client {ClientId}", clientId);
         }
 
         return usage;
-    }
-
-    private long ParseTotalBytes(string data)
-    {
-        try
-        {
-            var doc = JsonDocument.Parse(data);
-            var results = doc.RootElement.GetProperty("data").GetProperty("result");
-            long total = 0;
-
-            foreach (var result in results.EnumerateArray())
-            {
-                var value = result.GetProperty("value")[1].GetString() ?? "0";
-                total += long.Parse(value.Split('.')[0]);
-            }
-
-            return total;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    private (long uploaded, long downloaded) ParseUploadDownload(string data)
-    {
-        try
-        {
-            var doc = JsonDocument.Parse(data);
-            var results = doc.RootElement.GetProperty("data").GetProperty("result");
-            long totalUp = 0, totalDown = 0;
-
-            foreach (var result in results.EnumerateArray())
-            {
-                var metric = result.GetProperty("metric");
-                var direction = metric.GetProperty("dir").GetString() ?? "";
-                var value = result.GetProperty("value")[1].GetString() ?? "0";
-                var bytes = long.Parse(value.Split('.')[0]);
-
-                if (direction.Contains(">"))
-                    totalUp += bytes;
-                else if (direction.Contains("<"))
-                    totalDown += bytes;
-            }
-
-            return (totalUp, totalDown);
-        }
-        catch
-        {
-            return (0, 0);
-        }
     }
 }

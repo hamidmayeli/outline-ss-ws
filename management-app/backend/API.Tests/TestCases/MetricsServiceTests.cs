@@ -11,6 +11,14 @@ public class MetricsServiceTests : TestCaseBase
     {
         // Arrange
         var clientId = "test-client-1";
+        
+        // Setup raw metrics response with no data for this client
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            # HELP shadowsocks_data_bytes Bytes transferred
+            # TYPE shadowsocks_data_bytes counter
+            shadowsocks_data_bytes{access_key="other-client",dir="c>p"} 1000
+            """);
+        
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
         // Act
@@ -31,67 +39,20 @@ public class MetricsServiceTests : TestCaseBase
         // Arrange
         var clientId = "test-client-1";
         
-        // Add specific routes for this test - use query patterns that match what MetricsService sends
-        _fixture.PrometheusHttpHandler.AddRoute($"increase(shadowsocks_data_bytes{{access_key=\"{clientId}\"}}[30d])", $$"""
-            {
-                "status": "success",
-                "data": {
-                    "resultType": "vector",
-                    "result": [
-                        {
-                            "metric": {
-                                "access_key": "{{clientId}}",
-                                "dir": "c>p",
-                                "proto": "tcp"
-                            },
-                            "value": [1234567890, "1048576"]
-                        },
-                        {
-                            "metric": {
-                                "access_key": "{{clientId}}",
-                                "dir": "c<p",
-                                "proto": "tcp"
-                            },
-                            "value": [1234567890, "2097152"]
-                        }
-                    ]
-                }
-            }
-            """);
-        
-        _fixture.PrometheusHttpHandler.AddRoute($"shadowsocks_tunnel_time_seconds{{access_key=\"{clientId}\"}}", $$"""
-            {
-                "status": "success",
-                "data": {
-                    "resultType": "vector",
-                    "result": [
-                        {
-                            "metric": {
-                                "access_key": "{{clientId}}"
-                            },
-                            "value": [1234567890, "3600.5"]
-                        }
-                    ]
-                }
-            }
-            """);
-        
-        _fixture.PrometheusHttpHandler.AddRoute($"increase(shadowsocks_tcp_connections_closed{{access_key=\"{clientId}\"}}[30d])", $$"""
-            {
-                "status": "success",
-                "data": {
-                    "resultType": "vector",
-                    "result": [
-                        {
-                            "metric": {
-                                "access_key": "{{clientId}}",
-                                "status": "OK"
-                            },
-                            "value": [1234567890, "150"]
-                        }
-                    ]
-                }
-            }
+        // Setup raw metrics response
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", $$"""
+            # HELP shadowsocks_data_bytes Bytes transferred
+            # TYPE shadowsocks_data_bytes counter
+            shadowsocks_data_bytes{access_key="{{clientId}}",dir="c>p"} 1048576
+            shadowsocks_data_bytes{access_key="{{clientId}}",dir="c<p"} 2097152
+            shadowsocks_data_bytes{access_key="{{clientId}}",dir="p>t"} 1048576
+            shadowsocks_data_bytes{access_key="{{clientId}}",dir="t<p"} 2097152
+            # HELP shadowsocks_tunnel_time_seconds Tunnel time
+            # TYPE shadowsocks_tunnel_time_seconds gauge
+            shadowsocks_tunnel_time_seconds{access_key="{{clientId}}"} 3600.5
+            # HELP shadowsocks_tcp_connections_closed TCP connections closed
+            # TYPE shadowsocks_tcp_connections_closed counter
+            shadowsocks_tcp_connections_closed{access_key="{{clientId}}",status="OK"} 150
             """);
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
@@ -101,9 +62,9 @@ public class MetricsServiceTests : TestCaseBase
 
         // Assert
         Assert.NotNull(usage);
-        Assert.Equal(3145728, usage.TotalBytesTransferred); // 1MB upload + 2MB download
-        Assert.Equal(1048576, usage.BytesUploaded); // 1MB
-        Assert.Equal(2097152, usage.BytesDownloaded); // 2MB
+        Assert.Equal(6291456, usage.TotalBytesTransferred); // 2MB up + 4MB down
+        Assert.Equal(2097152, usage.BytesUploaded); // 1MB + 1MB
+        Assert.Equal(4194304, usage.BytesDownloaded); // 2MB + 2MB
         Assert.Equal(3600.5, usage.TunnelTimeSeconds);
         Assert.Equal(150, usage.TotalConnections);
     }
@@ -112,6 +73,8 @@ public class MetricsServiceTests : TestCaseBase
     public async Task When_GetAllClientsHourlyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
+        
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
         // Act
@@ -142,6 +105,11 @@ public class MetricsServiceTests : TestCaseBase
         };
 
         await _fixture.SetClient([client1, client2]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
+            shadowsocks_data_bytes{access_key="2",dir="c>p"} 2000
+            """);
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -153,13 +121,16 @@ public class MetricsServiceTests : TestCaseBase
         Assert.Equal(2, usage.Count);
         Assert.Contains(usage, u => u.ClientId == "1" && u.ClientName == "Client1");
         Assert.Contains(usage, u => u.ClientId == "2" && u.ClientName == "Client2");
-        Assert.All(usage, u => Assert.Equal(24, u.DataPoints.Count));
+        // Note: With raw metrics we only get current snapshot, not historical hourly data
+        Assert.All(usage, u => Assert.Single(u.DataPoints));
     }
 
     [Fact]
     public async Task When_GetAllClientsDailyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
+        
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
         // Act
@@ -183,6 +154,11 @@ public class MetricsServiceTests : TestCaseBase
         };
 
         await _fixture.SetClient([client1]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 500
+            shadowsocks_data_bytes{access_key="1",dir="c<p"} 1500
+            """);
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -194,11 +170,11 @@ public class MetricsServiceTests : TestCaseBase
         Assert.Single(usage);
         Assert.Equal("1", usage[0].ClientId);
         Assert.Equal("Client1", usage[0].ClientName);
-        Assert.Equal(30, usage[0].DataPoints.Count);
-        Assert.All(usage[0].DataPoints, dp =>
-        {
-            Assert.True(dp.Date <= DateTime.UtcNow.Date);
-            Assert.True(dp.Date >= DateTime.UtcNow.Date.AddDays(-30));
-        });
+        // Note: With raw metrics we only get current snapshot, not historical daily data
+        Assert.Single(usage[0].DataPoints);
+        Assert.Equal(DateTime.UtcNow.Date, usage[0].DataPoints[0].Date);
+        Assert.Equal(2000, usage[0].DataPoints[0].BytesTransferred);
+        Assert.Equal(500, usage[0].DataPoints[0].BytesUploaded);
+        Assert.Equal(1500, usage[0].DataPoints[0].BytesDownloaded);
     }
 }

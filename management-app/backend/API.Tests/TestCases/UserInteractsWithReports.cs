@@ -24,6 +24,7 @@ public class UserInteractsWithReports : TestCaseBase
     public async Task When_GetHourlyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
         var client = _fixture.GetAuthenticatedClient();
 
         // Act
@@ -57,6 +58,15 @@ public class UserInteractsWithReports : TestCaseBase
         };
 
         await _fixture.SetClient([client1, client2]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 5000
+            shadowsocks_data_bytes{access_key="1",dir="c<p"} 10000
+            shadowsocks_data_bytes{access_key="2",dir="c>p"} 3000
+            shadowsocks_data_bytes{access_key="2",dir="c<p"} 7000
+            shadowsocks_tcp_connections_closed{access_key="1",status="OK"} 50
+            shadowsocks_tcp_connections_closed{access_key="2",status="OK"} 30
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -73,12 +83,12 @@ public class UserInteractsWithReports : TestCaseBase
         Assert.Contains(reports, r => r.ClientId == "1" && r.ClientName == "Client1");
         Assert.Contains(reports, r => r.ClientId == "2" && r.ClientName == "Client2");
         
+        // With raw metrics, we get current snapshot only
         Assert.All(reports, r =>
         {
-            Assert.Equal(12, r.DataPoints.Count);
+            Assert.Single(r.DataPoints);
             Assert.All(r.DataPoints, dp =>
             {
-                Assert.True(dp.Timestamp <= DateTime.UtcNow);
                 Assert.True(dp.BytesTransferred >= 0);
                 Assert.True(dp.Connections >= 0);
             });
@@ -98,6 +108,10 @@ public class UserInteractsWithReports : TestCaseBase
         };
 
         await _fixture.SetClient([client1]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -110,7 +124,8 @@ public class UserInteractsWithReports : TestCaseBase
         var reports = await response.Content.ReadFromJsonAsync<List<HourlyUsageResponse>>();
         Assert.NotNull(reports);
         Assert.Single(reports);
-        Assert.Equal(24, reports[0].DataPoints.Count);
+        // With raw metrics, we get current snapshot regardless of hours parameter
+        Assert.Single(reports[0].DataPoints);
     }
 
     [Fact]
@@ -130,6 +145,7 @@ public class UserInteractsWithReports : TestCaseBase
     public async Task When_GetDailyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
         var client = _fixture.GetAuthenticatedClient();
 
         // Act
@@ -163,6 +179,13 @@ public class UserInteractsWithReports : TestCaseBase
         };
 
         await _fixture.SetClient([client1, client2]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 500
+            shadowsocks_data_bytes{access_key="1",dir="c<p"} 1500
+            shadowsocks_data_bytes{access_key="2",dir="c>p"} 800
+            shadowsocks_data_bytes{access_key="2",dir="c<p"} 2200
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -179,17 +202,15 @@ public class UserInteractsWithReports : TestCaseBase
         Assert.Contains(reports, r => r.ClientId == "1" && r.ClientName == "Client1");
         Assert.Contains(reports, r => r.ClientId == "2" && r.ClientName == "Client2");
         
+        // With raw metrics, we get current snapshot only
         Assert.All(reports, r =>
         {
-            Assert.Equal(7, r.DataPoints.Count);
+            Assert.Single(r.DataPoints);
             Assert.All(r.DataPoints, dp =>
             {
-                Assert.True(dp.Date <= DateTime.UtcNow.Date);
-                Assert.True(dp.Date >= DateTime.UtcNow.Date.AddDays(-7));
                 Assert.True(dp.BytesTransferred >= 0);
                 Assert.True(dp.BytesUploaded >= 0);
                 Assert.True(dp.BytesDownloaded >= 0);
-                Assert.True(dp.Connections >= 0);
                 Assert.Equal(dp.BytesUploaded + dp.BytesDownloaded, dp.BytesTransferred);
             });
         });
@@ -208,6 +229,10 @@ public class UserInteractsWithReports : TestCaseBase
         };
 
         await _fixture.SetClient([client1]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -220,7 +245,8 @@ public class UserInteractsWithReports : TestCaseBase
         var reports = await response.Content.ReadFromJsonAsync<List<DailyUsageResponse>>();
         Assert.NotNull(reports);
         Assert.Single(reports);
-        Assert.Equal(30, reports[0].DataPoints.Count);
+        // With raw metrics, we get current snapshot regardless of days parameter
+        Assert.Single(reports[0].DataPoints);
     }
 
     [Fact]
@@ -236,6 +262,11 @@ public class UserInteractsWithReports : TestCaseBase
         };
 
         await _fixture.SetClient([client1]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
+            shadowsocks_data_bytes{access_key="1",dir="c<p"} 3000
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -249,7 +280,8 @@ public class UserInteractsWithReports : TestCaseBase
         Assert.NotNull(reports);
         Assert.Single(reports);
         
-        var dates = reports[0].DataPoints.Select(dp => dp.Date).ToList();
-        Assert.Equal(dates.OrderBy(d => d).ToList(), dates);
+        // With raw metrics, we get a single snapshot
+        Assert.Single(reports[0].DataPoints);
+        Assert.Equal(DateTime.UtcNow.Date, reports[0].DataPoints[0].Date);
     }
 }

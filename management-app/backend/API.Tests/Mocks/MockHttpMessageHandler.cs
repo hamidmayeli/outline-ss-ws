@@ -34,6 +34,7 @@ public class MockHttpMessageHandler : HttpMessageHandler
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest));
         }
 
+        var path = request.RequestUri.AbsolutePath;
         var query = Uri.UnescapeDataString(request.RequestUri.Query);
         
         // Sort routes by key length (descending) to match most specific routes first
@@ -44,7 +45,13 @@ public class MockHttpMessageHandler : HttpMessageHandler
         
         foreach (var route in orderedRoutes)
         {
-            if (query.Contains(route.Key, StringComparison.OrdinalIgnoreCase))
+            // Match against path or query
+            // For path matching, normalize the route key to handle both "/metrics" and "metrics"
+            var normalizedRouteKey = route.Key.TrimStart('/');
+            var normalizedPath = path.TrimStart('/');
+            
+            if (normalizedPath.Contains(normalizedRouteKey, StringComparison.OrdinalIgnoreCase) ||
+                query.Contains(route.Key, StringComparison.OrdinalIgnoreCase))
             {
                 return Task.FromResult(route.Value(request));
             }
