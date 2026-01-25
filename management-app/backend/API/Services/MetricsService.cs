@@ -31,8 +31,15 @@ public class MetricsService : IMetricsService
                 _logger.LogDebug("Fetching usage for client: {ClientId}", clientId);
             }
             
+            var client = await _clientRepository.GetByIdAsync(clientId);
+            if (client == null)
+            {
+                _logger.LogWarning("Client {ClientId} not found", clientId);
+                return new ClientUsageResponse();
+            }
+            
             var metricsText = await FetchRawMetricsAsync();
-            return ParseClientUsageFromRawMetrics(metricsText, clientId);
+            return ParseClientUsageFromRawMetrics(metricsText, client.AccessKeyId.ToString());
         }
         catch (Exception ex)
         {
@@ -51,7 +58,7 @@ public class MetricsService : IMetricsService
 
             foreach (var client in clients)
             {
-                var usage = ParseClientUsageFromRawMetrics(metricsText, client.Id);
+                var usage = ParseClientUsageFromRawMetrics(metricsText, client.AccessKeyId.ToString());
                 
                 // Note: Raw metrics give us current counters, not historical hourly data
                 // For proper hourly data, you'd need Prometheus with historical storage
@@ -91,7 +98,7 @@ public class MetricsService : IMetricsService
 
             foreach (var client in clients)
             {
-                var usage = ParseClientUsageFromRawMetrics(metricsText, client.Id);
+                var usage = ParseClientUsageFromRawMetrics(metricsText, client.AccessKeyId.ToString());
                 
                 // Note: Raw metrics give us current counters, not historical daily data
                 // For proper daily data, you'd need Prometheus with historical storage
@@ -158,16 +165,26 @@ public class MetricsService : IMetricsService
         }
     }
 
-    private ClientUsageResponse ParseClientUsageFromRawMetrics(string metricsText, string clientId)
+    private ClientUsageResponse ParseClientUsageFromRawMetrics(string metricsText, string accessKeyId)
     {
         var usage = new ClientUsageResponse();
 
         try
         {
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Parsing metrics for access_key={AccessKeyId}", accessKeyId);
+            }
+            
             // Parse shadowsocks_data_bytes for the client
             // Format: shadowsocks_data_bytes{access_key="client-id",dir="c<-p"} 12345
-            var bytesPattern = $@"shadowsocks_data_bytes{{access_key=""{Regex.Escape(clientId)}"",dir=""([^""]+)""}} ([0-9.]+)";
+            var bytesPattern = $@"shadowsocks_data_bytes{{access_key=""{Regex.Escape(accessKeyId)}"",dir=""([^""]+)""}} ([0-9.]+)";
             var bytesMatches = Regex.Matches(metricsText, bytesPattern);
+
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Found {Count} byte metrics for access_key={AccessKeyId}", bytesMatches.Count, accessKeyId);
+            }
 
             long totalUp = 0, totalDown = 0;
 
@@ -187,7 +204,7 @@ public class MetricsService : IMetricsService
             usage.TotalBytesTransferred = totalUp + totalDown;
 
             // Parse shadowsocks_tunnel_time_seconds
-            var tunnelPattern = $@"shadowsocks_tunnel_time_seconds{{access_key=""{Regex.Escape(clientId)}""}} ([0-9.]+)";
+            var tunnelPattern = $@"shadowsocks_tunnel_time_seconds{{access_key=""{Regex.Escape(accessKeyId)}""}} ([0-9.]+)";
             var tunnelMatch = Regex.Match(metricsText, tunnelPattern);
             if (tunnelMatch.Success)
             {
@@ -195,7 +212,7 @@ public class MetricsService : IMetricsService
             }
 
             // Parse shadowsocks_tcp_connections_closed
-            var connectionsPattern = $@"shadowsocks_tcp_connections_closed{{access_key=""{Regex.Escape(clientId)}"",status=""([^""]+)""}} ([0-9.]+)";
+            var connectionsPattern = $@"shadowsocks_tcp_connections_closed{{access_key=""{Regex.Escape(accessKeyId)}"",status=""([^""]+)""}} ([0-9.]+)";
             var connectionsMatches = Regex.Matches(metricsText, connectionsPattern);
             
             int totalConns = 0;
@@ -207,13 +224,13 @@ public class MetricsService : IMetricsService
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("Parsed usage for {ClientId}: {Upload}↑ {Download}↓ {Connections} conns", 
-                    clientId, usage.BytesUploaded, usage.BytesDownloaded, usage.TotalConnections);
+                _logger.LogDebug("Parsed usage for access_key={AccessKeyId}: {Upload}↑ {Download}↓ {Connections} conns", 
+                    accessKeyId, usage.BytesUploaded, usage.BytesDownloaded, usage.TotalConnections);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to parse raw metrics for client {ClientId}", clientId);
+            _logger.LogError(ex, "Failed to parse raw metrics for access_key {AccessKeyId}", accessKeyId);
         }
 
         return usage;

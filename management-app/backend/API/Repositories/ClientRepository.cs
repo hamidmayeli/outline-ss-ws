@@ -48,12 +48,17 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             Name = name,
             Secret = secret,
             Cipher = "chacha20-ietf-poly1305",
-            IsActive = true
+            IsActive = true,
+            AccessKeyId = 0 // Will be assigned based on existing clients
         };
 
         return WithFileLockAsync(async () =>
         {
             var clients = (await LoadAsync()).ToList();
+            
+            // Assign next available AccessKeyId
+            client.AccessKeyId = clients.Count != 0 ? clients.Max(c => c.AccessKeyId) + 1 : 1;
+            
             clients.Add(client);
             await SaveAsync(clients);
 
@@ -80,6 +85,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             existingClient.Secret = client.Secret;
             existingClient.Cipher = client.Cipher;
             existingClient.IsActive = client.IsActive;
+            existingClient.AccessKeyId = client.AccessKeyId;
 
             await SaveAsync(clients);
 

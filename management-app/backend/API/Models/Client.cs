@@ -10,4 +10,5 @@ public class Client
     public required string Secret { get; set; }
     public string Cipher { get; set; } = "chacha20-ietf-poly1305";
     public bool IsActive { get; set; } = true;
+    public int AccessKeyId { get; set; }
 }

@@ -38,21 +38,33 @@ public class MetricsServiceTests : TestCaseBase
     {
         // Arrange
         var clientId = "test-client-1";
+        var accessKeyId = 123;
+        
+        var client = new Client
+        {
+            Id = clientId,
+            Name = "Test Client 1",
+            Secret = "secret1",
+            IsActive = true,
+            AccessKeyId = accessKeyId
+        };
+
+        await _fixture.SetClient([client]);
         
         // Setup raw metrics response
         _fixture.PrometheusHttpHandler.AddRoute("/metrics", $$"""
             # HELP shadowsocks_data_bytes Bytes transferred
             # TYPE shadowsocks_data_bytes counter
-            shadowsocks_data_bytes{access_key="{{clientId}}",dir="c>p"} 1048576
-            shadowsocks_data_bytes{access_key="{{clientId}}",dir="c<p"} 2097152
-            shadowsocks_data_bytes{access_key="{{clientId}}",dir="p>t"} 1048576
-            shadowsocks_data_bytes{access_key="{{clientId}}",dir="t<p"} 2097152
+            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="c>p"} 1048576
+            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="c<p"} 2097152
+            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="p>t"} 1048576
+            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="t<p"} 2097152
             # HELP shadowsocks_tunnel_time_seconds Tunnel time
             # TYPE shadowsocks_tunnel_time_seconds gauge
-            shadowsocks_tunnel_time_seconds{access_key="{{clientId}}"} 3600.5
+            shadowsocks_tunnel_time_seconds{access_key="{{accessKeyId}}"} 3600.5
             # HELP shadowsocks_tcp_connections_closed TCP connections closed
             # TYPE shadowsocks_tcp_connections_closed counter
-            shadowsocks_tcp_connections_closed{access_key="{{clientId}}",status="OK"} 150
+            shadowsocks_tcp_connections_closed{access_key="{{accessKeyId}}",status="OK"} 150
             """);
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
@@ -150,7 +162,8 @@ public class MetricsServiceTests : TestCaseBase
             Id = "1",
             Name = "Client1",
             Secret = "secret1",
-            IsActive = true
+            IsActive = true,
+            AccessKeyId = 1
         };
 
         await _fixture.SetClient([client1]);

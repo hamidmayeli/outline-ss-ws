@@ -157,6 +157,7 @@ public static class ClientEndpoints
             Id = client.Id,
             Name = client.Name,
             IsActive = client.IsActive,
+            AccessKeyId = client.AccessKeyId,
             UsageLast30Days = usage
         };
     }

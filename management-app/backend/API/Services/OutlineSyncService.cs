@@ -67,10 +67,9 @@ public class OutlineSyncService(
         sb.AppendLine($"        path: \"{_appSettings.UdpPath}\"");
         sb.AppendLine("    keys:");
 
-        for (int i = 0; i < activeClients.Count; i++)
+        foreach (var client in activeClients)
         {
-            var client = activeClients[i];
-            sb.AppendLine($"      - id: {i + 1}");
+            sb.AppendLine($"      - id: {client.AccessKeyId}");
             sb.AppendLine($"        cipher: {client.Cipher}");
             sb.AppendLine($"        secret: {client.Secret}");
         }
