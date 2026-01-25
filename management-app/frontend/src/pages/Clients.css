@@ -123,6 +123,18 @@
   color: var(--warning-color);
 }
 
+.usage-stat {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.text-muted {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
 .clients-table code {
   background: var(--bg-secondary);
   padding: 0.25rem 0.5rem;

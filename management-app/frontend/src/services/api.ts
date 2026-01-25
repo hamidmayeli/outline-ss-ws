@@ -9,12 +9,21 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface ClientUsage {
+  totalBytesTransferred: number;
+  bytesUploaded: number;
+  bytesDownloaded: number;
+  tunnelTimeSeconds: number;
+  totalConnections: number;
+}
+
 export interface Client {
   id: number;
   name: string;
   secret: string;
   cipher: string;
   isActive: boolean;
+  usageLast30Days?: ClientUsage;
 }
 
 export interface CreateClientRequest {

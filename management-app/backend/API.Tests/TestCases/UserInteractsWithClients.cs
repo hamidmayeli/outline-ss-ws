@@ -39,6 +39,11 @@ public class UserInteractsWithClients : TestCaseBase
         };
 
         await _fixture.SetClient([client1, client2]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
+            shadowsocks_data_bytes{access_key="2",dir="c>p"} 2000
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
         var response = await client.GetAsync("/api/v1/clients/");
@@ -50,6 +55,9 @@ public class UserInteractsWithClients : TestCaseBase
         Assert.Equal(2, clients.Count);
         Assert.Contains(clients, c => c.Name == "Client1" && c.IsActive);
         Assert.Contains(clients, c => c.Name == "Client2" && !c.IsActive);
+        
+        // Verify usage data is included
+        Assert.All(clients, c => Assert.NotNull(c.UsageLast30Days));
     }
 
     [Fact]
@@ -73,7 +81,13 @@ public class UserInteractsWithClients : TestCaseBase
             IsActive = true
         };
 
-        await _fixture.SetClient([testClient]);
+        await _fixture.SetClient([testClient]);        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 7000
+            """);        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
+            shadowsocks_data_bytes{access_key="1",dir="c>p"} 5000
+            """);
 
         var client = _fixture.GetAuthenticatedClient();
         var response = await client.GetAsync($"/api/v1/clients/{clientId}");
@@ -85,6 +99,9 @@ public class UserInteractsWithClients : TestCaseBase
         Assert.Equal(clientId, clientResponse.Id);
         Assert.Equal("TestClient", clientResponse.Name);
         Assert.True(clientResponse.IsActive);
+        
+        // Verify usage data is included
+        Assert.NotNull(clientResponse.UsageLast30Days);
     }
 
     [Fact]
@@ -127,6 +144,7 @@ public class UserInteractsWithClients : TestCaseBase
         Assert.NotEmpty(clientResponse.Id);
         Assert.Equal("NewClient", clientResponse.Name);
         Assert.True(clientResponse.IsActive);
+        Assert.NotNull(clientResponse.UsageLast30Days);
 
         Assert.Contains($"/api/v1/clients/{clientResponse.Id}", response.Headers.Location?.ToString());
     }
@@ -179,6 +197,10 @@ public class UserInteractsWithClients : TestCaseBase
             Name = "OriginalName",
             Secret = "secret"
         }]);
+        
+        _fixture.PrometheusHttpHandler.AddRoute("/metrics", $$"""
+            shadowsocks_data_bytes{access_key="{{clientId}}",dir="c>p"} 7000
+            """);
 
         var request = new UpdateClientRequest
         {
@@ -194,6 +216,7 @@ public class UserInteractsWithClients : TestCaseBase
         Assert.NotNull(clientResponse);
         Assert.Equal(clientId, clientResponse.Id);
         Assert.Equal("UpdatedName", clientResponse.Name);
+        Assert.NotNull(clientResponse.UsageLast30Days);
     }
 
     [Fact]

@@ -22,7 +22,8 @@ var appSettings = new AppSettings
     Domain = builder.Configuration["AppSettings:Domain"] ?? "localhost",
     TcpPath = builder.Configuration["AppSettings:TcpPath"] ?? "/tcp-ws",
     UdpPath = builder.Configuration["AppSettings:UdpPath"] ?? "/udp-ws",
-    OutlineConfigPath = builder.Configuration["AppSettings:OutlineConfigPath"] ?? "/etc/outline/config.yaml"
+    OutlineConfigPath = builder.Configuration["AppSettings:OutlineConfigPath"] ?? "/etc/outline/config.yaml",
+    PrometheusUrl = builder.Configuration["AppSettings:PrometheusUrl"] ?? "http://outline-server:9091"
 };
 builder.Services.AddSingleton(appSettings);
 
@@ -53,6 +54,12 @@ builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IClientRepository, ClientRepository>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IOutlineSyncService, OutlineSyncService>();
+
+// Register HttpClient for MetricsService
+builder.Services.AddHttpClient<IMetricsService, MetricsService>(client =>
+{
+    client.BaseAddress = new Uri(appSettings.PrometheusUrl);
+});
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -96,6 +103,10 @@ apiV1.MapGroup("/auth")
 apiV1.MapGroup("/clients")
     .MapClientEndpoints()
     .WithTags("Clients");
+
+apiV1.MapGroup("/reports")
+    .MapReportEndpoints()
+    .WithTags("Reports");
 
 apiV1.MapGroup("/config")
     .MapConfigEndpoints()

@@ -36,29 +36,39 @@ public static class ClientEndpoints
     }
 
     private static async Task<Ok<IEnumerable<ClientResponse>>> GetAllClientsAsync(
-        IClientRepository clientRepository)
+        IClientRepository clientRepository,
+        IMetricsService metricsService)
     {
         var clients = await clientRepository.GetAllAsync();
-        var response = clients.Select(MapToClientResponse);
-        return TypedResults.Ok(response);
+        var response = new List<ClientResponse>();
+        
+        foreach (var client in clients)
+        {
+            var clientResponse = await MapToClientResponseAsync(client, metricsService);
+            response.Add(clientResponse);
+        }
+        
+        return TypedResults.Ok(response.AsEnumerable());
     }
 
     private static async Task<Results<Ok<ClientResponse>, NotFound>> GetClientByIdAsync(
         string id,
-        IClientRepository clientRepository)
+        IClientRepository clientRepository,
+        IMetricsService metricsService)
     {
         var client = await clientRepository.GetByIdAsync(id);
         
         if (client == null)
             return TypedResults.NotFound();
 
-        return TypedResults.Ok(MapToClientResponse(client));
+        return TypedResults.Ok(await MapToClientResponseAsync(client, metricsService));
     }
 
     private static async Task<Results<Created<ClientResponse>, BadRequest<string>>> CreateClientAsync(
         CreateClientRequest request,
         IClientRepository clientRepository,
         IOutlineSyncService outlineSyncService,
+        IMetricsService metricsService,
         ILogger<Program> logger)
     {
         if (await clientRepository.ExistsAsync(request.Name))
@@ -77,13 +87,14 @@ public static class ClientEndpoints
             logger.LogDebug("Created client {ClientId} with name {ClientName}", createdClient.Id, createdClient.Name);
         }
 
-        return TypedResults.Created($"/api/v1/clients/{createdClient.Id}", MapToClientResponse(createdClient));
+        return TypedResults.Created($"/api/v1/clients/{createdClient.Id}", await MapToClientResponseAsync(createdClient, metricsService));
     }
 
     private static async Task<Results<Ok<ClientResponse>, NotFound, BadRequest<string>>> UpdateClientAsync(
         string id,
         UpdateClientRequest request,
         IClientRepository clientRepository,
+        IMetricsService metricsService,
         ILogger<Program> logger)
     {
         var existingClient = await clientRepository.GetByIdAsync(id);
@@ -111,7 +122,7 @@ public static class ClientEndpoints
             logger.LogDebug("Updated client {ClientId}", id);
         }
 
-        return TypedResults.Ok(MapToClientResponse(updatedClient));
+        return TypedResults.Ok(await MapToClientResponseAsync(updatedClient, metricsService));
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteClientAsync(
@@ -137,10 +148,17 @@ public static class ClientEndpoints
         return TypedResults.NoContent();
     }
 
-    private static ClientResponse MapToClientResponse(Client client) => new()
+    private static async Task<ClientResponse> MapToClientResponseAsync(Client client, IMetricsService metricsService)
     {
-        Id = client.Id,
-        Name = client.Name,
-        IsActive = client.IsActive,
-    };
+        var usage = await metricsService.GetClientUsageLast30DaysAsync(client.Id);
+        
+        return new ClientResponse
+        {
+            Id = client.Id,
+            Name = client.Name,
+            IsActive = client.IsActive,
+            AccessKeyId = client.AccessKeyId,
+            UsageLast30Days = usage
+        };
+    }
 }

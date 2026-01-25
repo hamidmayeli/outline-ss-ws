@@ -4,7 +4,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Change to the directory where your docker-compose.yml is located
-cd /root
+cd "$SCRIPT_DIR"
 
 # Pull the latest version of the Docker image
 docker compose pull

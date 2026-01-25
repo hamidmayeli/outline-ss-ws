@@ -514,7 +514,7 @@ setup_cron_jobs() {
         print_info "Creating default update script..."
         cat > "$INSTALL_DIR/update.sh" <<'EOF'
 #!/bin/bash
-cd /opt/outline-manager
+cd $INSTALL_DIR
 docker compose pull
 docker compose up -d
 docker image prune -f
