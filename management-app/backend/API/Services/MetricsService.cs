@@ -177,8 +177,8 @@ public class MetricsService : IMetricsService
             }
             
             // Parse shadowsocks_data_bytes for the client
-            // Format: shadowsocks_data_bytes{access_key="client-id",dir="c<-p"} 12345
-            var bytesPattern = $@"shadowsocks_data_bytes{{access_key=""{Regex.Escape(accessKeyId)}"",dir=""([^""]+)""}} ([0-9.]+)";
+            // Format: shadowsocks_data_bytes{access_key="client-id",dir="c<-p",proto="tcp"} 12345
+            var bytesPattern = $@"shadowsocks_data_bytes{{access_key=""{Regex.Escape(accessKeyId)}"",dir=""([^""]+)""[^}}]*}} ([0-9.]+(?:e[+-]?[0-9]+)?)";
             var bytesMatches = Regex.Matches(metricsText, bytesPattern);
 
             if (_logger.IsEnabled(LogLevel.Trace))
@@ -191,11 +191,22 @@ public class MetricsService : IMetricsService
             foreach (Match match in bytesMatches)
             {
                 var direction = match.Groups[1].Value;
-                var value = long.Parse(match.Groups[2].Value.Split('.')[0]);
+                var valueString = match.Groups[2].Value;
+                
+                // Handle scientific notation (e.g., 7.782434e+06)
+                long value;
+                if (valueString.Contains("e") || valueString.Contains("E"))
+                {
+                    value = (long)double.Parse(valueString, System.Globalization.NumberStyles.Float);
+                }
+                else
+                {
+                    value = long.Parse(valueString.Split('.')[0]);
+                }
 
                 if (direction.Contains(">")) // Upload: c>p or p>t
                     totalUp += value;
-                else if (direction.Contains("<")) // Download: c<p or t<p
+                else if (direction.Contains("<")) // Download: c<p or t<p or p<t
                     totalDown += value;
             }
 
@@ -204,7 +215,7 @@ public class MetricsService : IMetricsService
             usage.TotalBytesTransferred = totalUp + totalDown;
 
             // Parse shadowsocks_tunnel_time_seconds
-            var tunnelPattern = $@"shadowsocks_tunnel_time_seconds{{access_key=""{Regex.Escape(accessKeyId)}""}} ([0-9.]+)";
+            var tunnelPattern = $@"shadowsocks_tunnel_time_seconds{{access_key=""{Regex.Escape(accessKeyId)}""[^}}]*}} ([0-9.]+(?:e[+-]?[0-9]+)?)";
             var tunnelMatch = Regex.Match(metricsText, tunnelPattern);
             if (tunnelMatch.Success)
             {
@@ -212,7 +223,7 @@ public class MetricsService : IMetricsService
             }
 
             // Parse shadowsocks_tcp_connections_closed
-            var connectionsPattern = $@"shadowsocks_tcp_connections_closed{{access_key=""{Regex.Escape(accessKeyId)}"",status=""([^""]+)""}} ([0-9.]+)";
+            var connectionsPattern = $@"shadowsocks_tcp_connections_closed{{access_key=""{Regex.Escape(accessKeyId)}""[^}}]*status=""([^""]+)""[^}}]*}} ([0-9.]+(?:e[+-]?[0-9]+)?)";
             var connectionsMatches = Regex.Matches(metricsText, connectionsPattern);
             
             int totalConns = 0;
