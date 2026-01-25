@@ -21,6 +21,15 @@ namespace OutlineManager.API;
 [JsonSerializable(typeof(TransportConfig))]
 [JsonSerializable(typeof(ShadowsocksConfig))]
 [JsonSerializable(typeof(EndpointConfig))]
+[JsonSerializable(typeof(ClientUsageResponse))]
+[JsonSerializable(typeof(HourlyUsageResponse))]
+[JsonSerializable(typeof(List<HourlyUsageResponse>))]
+[JsonSerializable(typeof(HourlyDataPoint))]
+[JsonSerializable(typeof(List<HourlyDataPoint>))]
+[JsonSerializable(typeof(DailyUsageResponse))]
+[JsonSerializable(typeof(List<DailyUsageResponse>))]
+[JsonSerializable(typeof(DailyDataPoint))]
+[JsonSerializable(typeof(List<DailyDataPoint>))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }
