@@ -6,6 +6,14 @@ import { ClientModal } from '../components/ClientModal';
 import { ClientConfigModal } from '../components/ClientConfigModal';
 import './Clients.css';
 
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+};
+
 export const Clients: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +119,8 @@ export const Clients: React.FC = () => {
               <tr>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Data Usage (30d)</th>
+                <th>Connections (30d)</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -122,6 +132,27 @@ export const Clients: React.FC = () => {
                     <span className={`status-badge ${client.isActive ? 'active' : 'inactive'}`}>
                       {client.isActive ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td>
+                    {client.usageLast30Days ? (
+                      <>
+                        <div className="usage-stat">
+                          ↑ {formatBytes(client.usageLast30Days.bytesUploaded)}
+                        </div>
+                        <div className="usage-stat">
+                          ↓ {formatBytes(client.usageLast30Days.bytesDownloaded)}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted">No data</span>
+                    )}
+                  </td>
+                  <td>
+                    {client.usageLast30Days ? (
+                      client.usageLast30Days.totalConnections.toLocaleString()
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
                   </td>
                   <td className="actions-cell">
                     <button
