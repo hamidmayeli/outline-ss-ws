@@ -21,41 +21,37 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths(),
       VitePWA({ 
         registerType: 'prompt',
-        injectRegister: 'auto',
+        injectRegister: false,
         workbox:{
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2,ttf}'],
           runtimeCaching: [
             {
               urlPattern: apiPattern,
               handler: 'NetworkOnly',
             },
-            {
-              urlPattern: /\.json$/,
-              handler: 'NetworkOnly',
-            },
           ],
         },
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'logo192.png', 'logo512.png'],
-        manifestFilename: "manifest.json",
-        manifest: {
-          name: 'Outline Manager',
-          short_name: 'OL Mngr',
-          description: 'To manage Outline servers.',
-          theme_color: '#ffffff',
-          icons: [
-            {
-              src: 'logo192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'logo512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        }
-      }),
+      manifestFilename: "manifest.json",
+      manifest: {
+        name: 'Outline Manager',
+        short_name: 'OL Mngr',
+        description: 'To manage Outline servers.',
+        theme_color: '#ffffff',
+        icons: [
+          {
+            src: 'logo192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'logo512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      }
+     }),
     ],
   };
 });
