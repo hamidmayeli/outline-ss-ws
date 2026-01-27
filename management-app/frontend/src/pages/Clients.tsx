@@ -17,6 +17,7 @@ const formatBytes = (bytes: number): string => {
 export const Clients: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -49,6 +50,12 @@ export const Clients: React.FC = () => {
   const handleCreate = () => {
     setEditingClient(null);
     setShowModal(true);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadClients();
+    setRefreshing(false);
   };
 
   const handleEdit = (client: Client) => {
@@ -98,9 +105,19 @@ export const Clients: React.FC = () => {
     <div className="clients-container">
       <div className="clients-header">
         <h1>Clients</h1>
-        <button className="btn-primary" onClick={handleCreate}>
-          + Add Client
-        </button>
+        <div>
+          <button 
+            className="btn-secondary" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{ marginRight: '0.5rem' }}
+          >
+            {refreshing ? '↻ Refreshing...' : '↻ Refresh'}
+          </button>
+          <button className="btn-primary" onClick={handleCreate}>
+            + Add Client
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
