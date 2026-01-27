@@ -23,10 +23,14 @@ export default defineConfig(({ mode }) => {
         registerType: 'prompt',
         injectRegister: 'auto',
         workbox:{
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2,ttf}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
           runtimeCaching: [
             {
               urlPattern: apiPattern,
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: /\.json$/,
               handler: 'NetworkOnly',
             },
           ],
