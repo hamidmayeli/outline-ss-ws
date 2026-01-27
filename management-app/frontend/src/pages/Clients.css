@@ -206,8 +206,16 @@
     padding: 0.75rem 0.5rem;
   }
 
-  .clients-table th:first-child,
-  .clients-table td:first-child {
+  .status-column {
     display: none;
+  }
+
+  .actions-cell {
+    white-space: normal;
+  }
+
+  .btn-action {
+    display: block;
+    margin: 0.25rem 0;
   }
 }
