@@ -118,9 +118,8 @@ export const Clients: React.FC = () => {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Status</th>
-                <th>Data Usage (30d)</th>
-                <th>Connections (30d)</th>
+                <th className="status-column">Status</th>
+                <th>Data Usage</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -128,7 +127,7 @@ export const Clients: React.FC = () => {
               {clients.map((client) => (
                 <tr key={client.id}>
                   <td>{client.name}</td>
-                  <td>
+                  <td className="status-column">
                     <span className={`status-badge ${client.isActive ? 'active' : 'inactive'}`}>
                       {client.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -145,13 +144,6 @@ export const Clients: React.FC = () => {
                       </>
                     ) : (
                       <span className="text-muted">No data</span>
-                    )}
-                  </td>
-                  <td>
-                    {client.usageLast30Days ? (
-                      client.usageLast30Days.totalConnections.toLocaleString()
-                    ) : (
-                      <span className="text-muted">-</span>
                     )}
                   </td>
                   <td className="actions-cell">

@@ -2,11 +2,15 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using OutlineManager.API;
+using OutlineManager.API.Commands;
 using OutlineManager.API.Endpoints;
 using OutlineManager.API.Interfaces;
 using OutlineManager.API.Models;
 using OutlineManager.API.Repositories;
 using OutlineManager.API.Services;
+
+// Check for create user command
+if (await CreateUserCommand.AskForUserCreation(args)) return;
 
 var builder = WebApplication.CreateBuilder(args);
 
