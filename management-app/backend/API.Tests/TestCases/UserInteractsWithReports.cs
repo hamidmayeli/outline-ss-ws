@@ -1,5 +1,6 @@
 using OutlineManager.API.DTOs;
 using OutlineManager.API.Models;
+using OutlineManager.API.Tests.TestHelpers;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -24,7 +25,7 @@ public class UserInteractsWithReports : TestCaseBase
     public async Task When_GetHourlyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
+        _fixture.SetupPrometheusRangeResponses([]);
         var client = _fixture.GetAuthenticatedClient();
 
         // Act
@@ -59,14 +60,41 @@ public class UserInteractsWithReports : TestCaseBase
 
         await _fixture.SetClient([client1, client2]);
         
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 5000
-            shadowsocks_data_bytes{access_key="1",dir="c<p"} 10000
-            shadowsocks_data_bytes{access_key="2",dir="c>p"} 3000
-            shadowsocks_data_bytes{access_key="2",dir="c<p"} 7000
-            shadowsocks_tcp_connections_closed{access_key="1",status="OK"} 50
-            shadowsocks_tcp_connections_closed{access_key="2",status="OK"} 30
-            """);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 5000)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                [new(now, 10000)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "2" }, { "dir", "c>p" } },
+                [new(now, 3000)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "2" }, { "dir", "c<p" } },
+                [new(now, 7000)]
+            )
+        );
+        var connectionsResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" } },
+                [new(now, 50)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "2" } },
+                [new(now, 30)]
+            )
+        );
+
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse },
+            { "shadowsocks_tcp_connections_closed", connectionsResponse }
+        });
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -83,10 +111,9 @@ public class UserInteractsWithReports : TestCaseBase
         Assert.Contains(reports, r => r.ClientId == "1" && r.ClientName == "Client1");
         Assert.Contains(reports, r => r.ClientId == "2" && r.ClientName == "Client2");
         
-        // With raw metrics, we get current snapshot only
         Assert.All(reports, r =>
         {
-            Assert.Single(r.DataPoints);
+            Assert.Equal(12, r.DataPoints.Count);
             Assert.All(r.DataPoints, dp =>
             {
                 Assert.True(dp.BytesTransferred >= 0);
@@ -109,9 +136,17 @@ public class UserInteractsWithReports : TestCaseBase
 
         await _fixture.SetClient([client1]);
         
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
-            """);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 1000)]
+            )
+        );
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -124,8 +159,7 @@ public class UserInteractsWithReports : TestCaseBase
         var reports = await response.Content.ReadFromJsonAsync<List<HourlyUsageResponse>>();
         Assert.NotNull(reports);
         Assert.Single(reports);
-        // With raw metrics, we get current snapshot regardless of hours parameter
-        Assert.Single(reports[0].DataPoints);
+        Assert.Equal(24, reports[0].DataPoints.Count);
     }
 
     [Fact]
@@ -145,7 +179,7 @@ public class UserInteractsWithReports : TestCaseBase
     public async Task When_GetDailyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
+        _fixture.SetupPrometheusRangeResponses([]);
         var client = _fixture.GetAuthenticatedClient();
 
         // Act
@@ -180,12 +214,29 @@ public class UserInteractsWithReports : TestCaseBase
 
         await _fixture.SetClient([client1, client2]);
         
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 500
-            shadowsocks_data_bytes{access_key="1",dir="c<p"} 1500
-            shadowsocks_data_bytes{access_key="2",dir="c>p"} 800
-            shadowsocks_data_bytes{access_key="2",dir="c<p"} 2200
-            """);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 500)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                [new(now, 1500)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "2" }, { "dir", "c>p" } },
+                [new(now, 800)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "2" }, { "dir", "c<p" } },
+                [new(now, 2200)]
+            )
+        );
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -202,10 +253,9 @@ public class UserInteractsWithReports : TestCaseBase
         Assert.Contains(reports, r => r.ClientId == "1" && r.ClientName == "Client1");
         Assert.Contains(reports, r => r.ClientId == "2" && r.ClientName == "Client2");
         
-        // With raw metrics, we get current snapshot only
         Assert.All(reports, r =>
         {
-            Assert.Single(r.DataPoints);
+            Assert.Equal(7, r.DataPoints.Count);
             Assert.All(r.DataPoints, dp =>
             {
                 Assert.True(dp.BytesTransferred >= 0);
@@ -230,9 +280,17 @@ public class UserInteractsWithReports : TestCaseBase
 
         await _fixture.SetClient([client1]);
         
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
-            """);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 1000)]
+            )
+        );
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -245,8 +303,7 @@ public class UserInteractsWithReports : TestCaseBase
         var reports = await response.Content.ReadFromJsonAsync<List<DailyUsageResponse>>();
         Assert.NotNull(reports);
         Assert.Single(reports);
-        // With raw metrics, we get current snapshot regardless of days parameter
-        Assert.Single(reports[0].DataPoints);
+        Assert.Equal(30, reports[0].DataPoints.Count);
     }
 
     [Fact]
@@ -263,10 +320,21 @@ public class UserInteractsWithReports : TestCaseBase
 
         await _fixture.SetClient([client1]);
         
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
-            shadowsocks_data_bytes{access_key="1",dir="c<p"} 3000
-            """);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 1000)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                [new(now, 3000)]
+            )
+        );
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
 
         var client = _fixture.GetAuthenticatedClient();
 
@@ -280,8 +348,8 @@ public class UserInteractsWithReports : TestCaseBase
         Assert.NotNull(reports);
         Assert.Single(reports);
         
-        // With raw metrics, we get a single snapshot
-        Assert.Single(reports[0].DataPoints);
-        Assert.Equal(DateTime.UtcNow.Date, reports[0].DataPoints[0].Date);
+        Assert.Equal(5, reports[0].DataPoints.Count);
+        var ordered = reports[0].DataPoints.OrderBy(p => p.Date).ToList();
+        Assert.Equal(ordered, reports[0].DataPoints);
     }
 }

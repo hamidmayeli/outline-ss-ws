@@ -4,7 +4,7 @@ namespace OutlineManager.API.Tests.Mocks;
 
 public class MockHttpMessageHandler : HttpMessageHandler
 {
-    private readonly Dictionary<string, Func<HttpRequestMessage, HttpResponseMessage>> _routes = new();
+    private readonly Dictionary<string, Func<HttpRequestMessage, HttpResponseMessage>> _routes = [];
 
     public void AddRoute(string query, string responseJson)
     {
