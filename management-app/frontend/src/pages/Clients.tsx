@@ -14,6 +14,9 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 };
 
+type SortColumn = 'name' | 'usage';
+type SortDirection = 'asc' | 'desc';
+
 export const Clients: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,8 @@ export const Clients: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const { token, logout } = useAuth();
 
   const loadClients = useCallback(async () => {
@@ -92,6 +97,43 @@ export const Clients: React.FC = () => {
     }
   };
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getTotalUsage = (client: Client): number => {
+    if (!client.usageLast30Days) return 0;
+    return client.usageLast30Days.bytesUploaded + client.usageLast30Days.bytesDownloaded;
+  };
+
+  const sortedClients = [...clients].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    let comparison = 0;
+    if (sortColumn === 'name') {
+      comparison = a.name.localeCompare(b.name);
+    } else if (sortColumn === 'usage') {
+      comparison = getTotalUsage(a) - getTotalUsage(b);
+    }
+
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const getTotalUsageForAllClients = () => {
+    const totalUploaded = clients.reduce((sum, client) => 
+      sum + (client.usageLast30Days?.bytesUploaded || 0), 0);
+    const totalDownloaded = clients.reduce((sum, client) => 
+      sum + (client.usageLast30Days?.bytesDownloaded || 0), 0);
+    const total = totalUploaded + totalDownloaded;
+    
+    return `↑ ${formatBytes(totalUploaded)}, ↓ ${formatBytes(totalDownloaded)}, (${formatBytes(total)})`;
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -104,7 +146,14 @@ export const Clients: React.FC = () => {
   return (
     <div className="clients-container">
       <div className="clients-header">
-        <h1>Clients</h1>
+        <div>
+          <h1>Clients</h1>
+          {clients.length > 0 && (
+            <p className="total-usage-subheader">
+              Total usage (last 30 days): {getTotalUsageForAllClients()}
+            </p>
+          )}
+        </div>
         <div>
           <button 
             className="btn-secondary" 
@@ -134,14 +183,18 @@ export const Clients: React.FC = () => {
           <table className="clients-table">
             <thead>
               <tr>
-                <th>Name</th>
+                <th className="sortable" onClick={() => handleSort('name')}>
+                  Name {sortColumn === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th className="status-column">Status</th>
-                <th>Data Usage</th>
+                <th className="sortable" onClick={() => handleSort('usage')}>
+                  Data Usage {sortColumn === 'usage' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {clients.map((client) => (
+              {sortedClients.map((client) => (
                 <tr key={client.id}>
                   <td>{client.name}</td>
                   <td className="status-column">

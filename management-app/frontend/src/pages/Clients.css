@@ -16,6 +16,13 @@
   color: var(--text-primary);
 }
 
+.total-usage-subheader {
+  margin: 0.5rem 0 0 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -88,6 +95,16 @@
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.clients-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.clients-table th.sortable:hover {
+  color: var(--primary-color);
 }
 
 .clients-table td {
