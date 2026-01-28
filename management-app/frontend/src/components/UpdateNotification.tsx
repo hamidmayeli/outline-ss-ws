@@ -1,47 +1,36 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { registerSW } from 'virtual:pwa-register';
 
 export default function UpdateNotification() {
   const location = useLocation();
   const [offlineReady, setOfflineReady] = useState(false);
   const [needRefresh, setNeedRefresh] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [updateServiceWorker, setUpdateServiceWorker] = useState<
+    ((reloadPage?: boolean) => Promise<void>) | null
+  >(null);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
 
-    let isMounted = true;
-
-    const registerServiceWorker = async () => {
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        if (!isMounted) return;
-        setRegistration(reg);
-
-        reg.addEventListener('updatefound', () => {
-          const installing = reg.installing;
-          if (!installing) return;
-
-          installing.addEventListener('statechange', () => {
-            if (installing.state === 'installed') {
-              if (navigator.serviceWorker.controller) {
-                setNeedRefresh(true);
-              } else {
-                setOfflineReady(true);
-              }
-            }
-          });
-        });
-      } catch (error) {
+    const updateSW = registerSW({
+      immediate: true,
+      onNeedRefresh() {
+        setNeedRefresh(true);
+      },
+      onOfflineReady() {
+        setOfflineReady(true);
+      },
+      onRegistered(reg) {
+        setRegistration(reg ?? null);
+      },
+      onRegisterError(error) {
         console.log('SW registration error', error);
-      }
-    };
+      },
+    });
 
-    registerServiceWorker();
-
-    return () => {
-      isMounted = false;
-    };
+    setUpdateServiceWorker(() => updateSW);
   }, []);
 
   // Check for updates when page becomes visible or gains focus
@@ -84,20 +73,14 @@ export default function UpdateNotification() {
   };
 
   const handleUpdate = async () => {
-    if (!registration) return;
-
-    const waiting = registration.waiting;
-    if (waiting) {
-      waiting.postMessage({ type: 'SKIP_WAITING' });
-      const onControllerChange = () => {
-        navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-        window.location.reload();
-      };
-      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    if (updateServiceWorker) {
+      await updateServiceWorker(true);
       return;
     }
 
-    await registration.update();
+    if (registration) {
+      await registration.update();
+    }
   };
 
   if (!needRefresh && !offlineReady) return null;
