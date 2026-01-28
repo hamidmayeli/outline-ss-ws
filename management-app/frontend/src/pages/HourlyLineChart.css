@@ -54,6 +54,17 @@
   box-shadow: var(--shadow-md);
 }
 
+.hourlychart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.hourlychart-subsection h2 {
+  margin: 0 0 0.4rem 0;
+  color: var(--text-primary);
+}
+
 .custom-tooltip {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
