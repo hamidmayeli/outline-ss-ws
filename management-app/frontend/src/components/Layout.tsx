@@ -29,7 +29,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="app-title">Outline Manager</h1>
             <nav className="nav">
               <Link 
                 to="/clients" 
