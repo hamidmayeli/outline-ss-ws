@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import './UpdateNotification.css';
 
 export default function UpdateNotification() {
   const location = useLocation();
@@ -61,29 +62,29 @@ export default function UpdateNotification() {
   if (!needRefresh && !offlineReady) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm">
-      <div className="flex flex-col gap-2">
+    <div className="update-notification">
+      <div className="update-notification-content">
         {offlineReady && (
-          <p className="text-sm">App ready to work offline</p>
+          <p className="update-notification-text">App ready to work offline</p>
         )}
         {needRefresh && (
           <>
-            <p className="text-sm font-semibold">New version available!</p>
-            <p className="text-xs">Click reload to update to the latest version.</p>
+            <p className="update-notification-title">New version available!</p>
+            <p className="update-notification-text">Click reload to update to the latest version.</p>
           </>
         )}
-        <div className="flex gap-2 mt-2">
+        <div className="update-notification-actions">
           {needRefresh && (
             <button
               onClick={handleUpdate}
-              className="bg-white text-blue-600 px-4 py-2 rounded text-sm font-semibold hover:bg-gray-100"
+              className="update-btn-primary"
             >
               Reload
             </button>
           )}
           <button
             onClick={close}
-            className="bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-400"
+            className="update-btn-secondary"
           >
             Close
           </button>
