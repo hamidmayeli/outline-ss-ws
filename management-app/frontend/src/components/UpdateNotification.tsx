@@ -1,37 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { registerSW } from 'virtual:pwa-register';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 export default function UpdateNotification() {
   const location = useLocation();
-  const [offlineReady, setOfflineReady] = useState(false);
-  const [needRefresh, setNeedRefresh] = useState(false);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  const [updateServiceWorker, setUpdateServiceWorker] = useState<
-    ((reloadPage?: boolean) => Promise<void>) | null
-  >(null);
-
-  useEffect(() => {
-    if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
-
-    const updateSW = registerSW({
-      immediate: true,
-      onNeedRefresh() {
-        setNeedRefresh(true);
-      },
-      onOfflineReady() {
-        setOfflineReady(true);
-      },
-      onRegistered(reg) {
-        setRegistration(reg ?? null);
-      },
-      onRegisterError(error) {
-        console.log('SW registration error', error);
-      },
-    });
-
-    setUpdateServiceWorker(() => updateSW);
-  }, []);
+  const {
+    offlineReady: [offlineReady, setOfflineReady],
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    immediate: true,
+    onRegisterError(error) {
+      console.log('SW registration error', error);
+    },
+  });
 
   // Check for updates when page becomes visible or gains focus
   useEffect(() => {
@@ -73,14 +55,7 @@ export default function UpdateNotification() {
   };
 
   const handleUpdate = async () => {
-    if (updateServiceWorker) {
-      await updateServiceWorker(true);
-      return;
-    }
-
-    if (registration) {
-      await registration.update();
-    }
+    await updateServiceWorker(true);
   };
 
   if (!needRefresh && !offlineReady) return null;

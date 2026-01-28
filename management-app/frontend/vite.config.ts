@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths(),
       VitePWA({ 
         registerType: 'prompt',
-        injectRegister: false,
+        injectRegister: 'auto',
         workbox:{
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2,ttf}'],
           runtimeCaching: [
