@@ -1,7 +1,5 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using OutlineManager.API;
 using OutlineManager.API.Commands;
@@ -29,7 +27,7 @@ var appSettings = new AppSettings
     TcpPath = builder.Configuration["AppSettings:TcpPath"] ?? "/tcp-ws",
     UdpPath = builder.Configuration["AppSettings:UdpPath"] ?? "/udp-ws",
     OutlineConfigPath = builder.Configuration["AppSettings:OutlineConfigPath"] ?? "/etc/outline/config.yaml",
-    PrometheusUrl = builder.Configuration["AppSettings:PrometheusUrl"] ?? "http://outline-server:9091"
+    PrometheusUrl = builder.Configuration["AppSettings:PrometheusUrl"] ?? "http://outline-server:9092"
 };
 builder.Services.AddSingleton(appSettings);
 

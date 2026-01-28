@@ -10,7 +10,8 @@ RUN apt-get update && \
     ca-certificates \
     curl \
     wget \
-    tar && \
+    tar \
+    prometheus && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and install outline-ss-server
@@ -28,10 +29,22 @@ RUN outline-ss-server --version
 # Create config directory
 RUN mkdir -p /etc/outline
 
+# Create Prometheus config to scrape outline metrics
+RUN mkdir -p /etc/prometheus && \
+    printf '%s\n' \
+    'global:' \
+    '  scrape_interval: 15s' \
+    'scrape_configs:' \
+    '  - job_name: outline-ss-server' \
+    '    static_configs:' \
+    '      - targets: ["localhost:9091"]' \
+    > /etc/prometheus/prometheus.yml
+
 # Expose ports
 # 9090 for the web server (WebSocket connections)
-# 9091 for Prometheus metrics
-EXPOSE 9090 9091
+# 9091 for outline-ss-server Prometheus metrics
+# 9092 for Prometheus UI/API
+EXPOSE 9090 9091 9092
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -40,5 +53,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Set working directory
 WORKDIR /etc/outline
 
-# Run outline-ss-server
-CMD ["/usr/local/bin/outline-ss-server", "-config", "/etc/outline/config.yaml", "-metrics", "0.0.0.0:9091"]
+# Run outline-ss-server and Prometheus
+CMD ["/bin/sh", "-c", "prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus --web.listen-address=0.0.0.0:9092 & /usr/local/bin/outline-ss-server -config /etc/outline/config.yaml -metrics 0.0.0.0:9091"]

@@ -2,10 +2,11 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using OutlineManager.API.Interfaces;
 using OutlineManager.API.Models;
 using OutlineManager.API.Tests.Mocks;
+using OutlineManager.API.Tests.TestHelpers;
+using System.Net;
 using System.Text.Json;
 
 namespace OutlineManager.API.Tests;
@@ -42,36 +43,79 @@ public class TestFixture : WebApplicationFactory<Program>
 
     private void SetupDefaultPrometheusMocks()
     {
-        // Default empty responses for metrics
-        _mockHttpHandler.AddRoute("shadowsocks_data_bytes", """
+        // Default empty responses for Prometheus query APIs
+        SetupPrometheusInstantResponses([]);
+        SetupPrometheusRangeResponses([]);
+    }
+
+    public void SetupPrometheusInstantResponses(Dictionary<string, string> responsesByMetric)
+    {
+        foreach (var (metric, response) in responsesByMetric)
+        {
+            _mockHttpHandler.AddRoute(metric, _ => new HttpResponseMessage(HttpStatusCode.OK)
             {
-                "status": "success",
-                "data": {
-                    "resultType": "vector",
-                    "result": []
+                Content = new StringContent(response)
+            });
+        }
+
+        _mockHttpHandler.AddRoute("/api/v1/query", request =>
+        {
+            var rawQuery = request.RequestUri?.Query ?? string.Empty;
+            var decodedQuery = Uri.UnescapeDataString(rawQuery);
+            var decodedUrl = Uri.UnescapeDataString(request.RequestUri?.ToString() ?? string.Empty);
+            foreach (var (metric, response) in responsesByMetric)
+            {
+                if (rawQuery.Contains(metric, StringComparison.OrdinalIgnoreCase) ||
+                    decodedQuery.Contains(metric, StringComparison.OrdinalIgnoreCase) ||
+                    decodedUrl.Contains(metric, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(response)
+                    };
                 }
             }
-            """);
-        
-        _mockHttpHandler.AddRoute("shadowsocks_tunnel_time_seconds", """
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                "status": "success",
-                "data": {
-                    "resultType": "vector",
-                    "result": []
+                Content = new StringContent(PrometheusResponseBuilder.EmptyInstant())
+            };
+        });
+    }
+
+    public void SetupPrometheusRangeResponses(Dictionary<string, string> responsesByMetric)
+    {
+        foreach (var (metric, response) in responsesByMetric)
+        {
+            _mockHttpHandler.AddRoute(metric, _ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(response)
+            });
+        }
+
+        _mockHttpHandler.AddRoute("/api/v1/query_range", request =>
+        {
+            var rawQuery = request.RequestUri?.Query ?? string.Empty;
+            var decodedQuery = Uri.UnescapeDataString(rawQuery);
+            var decodedUrl = Uri.UnescapeDataString(request.RequestUri?.ToString() ?? string.Empty);
+            foreach (var (metric, response) in responsesByMetric)
+            {
+                if (rawQuery.Contains(metric, StringComparison.OrdinalIgnoreCase) ||
+                    decodedQuery.Contains(metric, StringComparison.OrdinalIgnoreCase) ||
+                    decodedUrl.Contains(metric, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(response)
+                    };
                 }
             }
-            """);
-        
-        _mockHttpHandler.AddRoute("shadowsocks_tcp_connections_closed", """
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                "status": "success",
-                "data": {
-                    "resultType": "vector",
-                    "result": []
-                }
-            }
-            """);
+                Content = new StringContent(PrometheusResponseBuilder.EmptyRange())
+            };
+        });
     }
 
     public MockHttpMessageHandler PrometheusHttpHandler => _mockHttpHandler;

@@ -39,11 +39,6 @@ public class UserInteractsWithClients : TestCaseBase
         };
 
         await _fixture.SetClient([client1, client2]);
-        
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
-            shadowsocks_data_bytes{access_key="2",dir="c>p"} 2000
-            """);
 
         var client = _fixture.GetAuthenticatedClient();
         var response = await client.GetAsync("/api/v1/clients/");
@@ -82,12 +77,6 @@ public class UserInteractsWithClients : TestCaseBase
         };
 
         await _fixture.SetClient([testClient]);        
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 7000
-            """);        
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 5000
-            """);
 
         var client = _fixture.GetAuthenticatedClient();
         var response = await client.GetAsync($"/api/v1/clients/{clientId}");
@@ -197,10 +186,6 @@ public class UserInteractsWithClients : TestCaseBase
             Name = "OriginalName",
             Secret = "secret"
         }]);
-        
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", $$"""
-            shadowsocks_data_bytes{access_key="{{clientId}}",dir="c>p"} 7000
-            """);
 
         var request = new UpdateClientRequest
         {

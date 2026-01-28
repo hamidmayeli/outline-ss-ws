@@ -238,6 +238,7 @@ setup_install_directory() {
     mkdir -p nginx/conf.d
     mkdir -p outline/config
     mkdir -p data
+    mkdir -p prometheus
     
     print_success "Installation directory prepared"
 }
@@ -266,10 +267,9 @@ services:
     image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
     restart: unless-stopped
-    ports:
-      - "9091:9091"
     volumes:
       - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
+            - ./prometheus:/var/lib/prometheus
 
   management-app:
     image: hamidmayeli/outline-manager:latest
@@ -283,6 +283,7 @@ services:
       - AppSettings__TcpPath=\${TCP_PATH}
       - AppSettings__UdpPath=\${UDP_PATH}
       - AppSettings__OutlineConfigPath=/etc/outline/config.yaml
+    - AppSettings__PrometheusUrl=http://outline-server:9092
       - DataDirectory=/app/data
     volumes:
       - ./data:/app/data

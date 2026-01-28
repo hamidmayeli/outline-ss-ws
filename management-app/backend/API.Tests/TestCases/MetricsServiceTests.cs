@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OutlineManager.API.Interfaces;
 using OutlineManager.API.Models;
+using OutlineManager.API.Tests.TestHelpers;
 
 namespace OutlineManager.API.Tests.TestCases;
 
@@ -11,13 +12,7 @@ public class MetricsServiceTests : TestCaseBase
     {
         // Arrange
         var clientId = "test-client-1";
-        
-        // Setup raw metrics response with no data for this client
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            # HELP shadowsocks_data_bytes Bytes transferred
-            # TYPE shadowsocks_data_bytes counter
-            shadowsocks_data_bytes{access_key="other-client",dir="c>p"} 1000
-            """);
+        _fixture.SetupPrometheusInstantResponses([]);
         
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -50,22 +45,41 @@ public class MetricsServiceTests : TestCaseBase
         };
 
         await _fixture.SetClient([client]);
-        
-        // Setup raw metrics response
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", $$"""
-            # HELP shadowsocks_data_bytes Bytes transferred
-            # TYPE shadowsocks_data_bytes counter
-            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="c>p"} 1048576
-            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="c<p"} 2097152
-            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="p>t"} 1048576
-            shadowsocks_data_bytes{access_key="{{accessKeyId}}",dir="t<p"} 2097152
-            # HELP shadowsocks_tunnel_time_seconds Tunnel time
-            # TYPE shadowsocks_tunnel_time_seconds gauge
-            shadowsocks_tunnel_time_seconds{access_key="{{accessKeyId}}"} 3600.5
-            # HELP shadowsocks_tcp_connections_closed TCP connections closed
-            # TYPE shadowsocks_tcp_connections_closed counter
-            shadowsocks_tcp_connections_closed{access_key="{{accessKeyId}}",status="OK"} 150
-            """);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", accessKeyId.ToString() }, { "dir", "c>p" } },
+                now,
+                2097152
+            ),
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", accessKeyId.ToString() }, { "dir", "c<p" } },
+                now,
+                4194304
+            )
+        );
+        var tunnelResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", accessKeyId.ToString() } },
+                now,
+                3600.5
+            )
+        );
+        var connectionsResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", accessKeyId.ToString() } },
+                now,
+                150
+            )
+        );
+
+        _fixture.SetupPrometheusInstantResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse },
+            { "shadowsocks_tunnel_time_seconds", tunnelResponse },
+            { "shadowsocks_tcp_connections_closed", connectionsResponse }
+        });
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -85,7 +99,7 @@ public class MetricsServiceTests : TestCaseBase
     public async Task When_GetAllClientsHourlyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
+        _fixture.SetupPrometheusRangeResponses([]);
         
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -117,11 +131,25 @@ public class MetricsServiceTests : TestCaseBase
         };
 
         await _fixture.SetClient([client1, client2]);
-        
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 1000
-            shadowsocks_data_bytes{access_key="2",dir="c>p"} 2000
-            """);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 1000)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "2" }, { "dir", "c>p" } },
+                [new(now, 2000)]
+            )
+        );
+        var connectionsResponse = PrometheusResponseBuilder.BuildRange();
+
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse },
+            { "shadowsocks_tcp_connections_closed", connectionsResponse }
+        });
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -133,15 +161,14 @@ public class MetricsServiceTests : TestCaseBase
         Assert.Equal(2, usage.Count);
         Assert.Contains(usage, u => u.ClientId == "1" && u.ClientName == "Client1");
         Assert.Contains(usage, u => u.ClientId == "2" && u.ClientName == "Client2");
-        // Note: With raw metrics we only get current snapshot, not historical hourly data
-        Assert.All(usage, u => Assert.Single(u.DataPoints));
+        Assert.All(usage, u => Assert.Equal(24, u.DataPoints.Count));
     }
 
     [Fact]
     public async Task When_GetAllClientsDailyUsage_WithNoClients_ReturnsEmptyList()
     {
         // Arrange
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", "# No metrics");
+        _fixture.SetupPrometheusRangeResponses([]);
         
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -167,11 +194,23 @@ public class MetricsServiceTests : TestCaseBase
         };
 
         await _fixture.SetClient([client1]);
-        
-        _fixture.PrometheusHttpHandler.AddRoute("/metrics", """
-            shadowsocks_data_bytes{access_key="1",dir="c>p"} 500
-            shadowsocks_data_bytes{access_key="1",dir="c<p"} 1500
-            """);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildRange(
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                [new(now, 500)]
+            ),
+            new PrometheusResponseBuilder.RangeSeries(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                [new(now, 1500)]
+            )
+        );
+
+        _fixture.SetupPrometheusRangeResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
 
         var metricsService = _fixture.Services.GetRequiredService<IMetricsService>();
 
@@ -183,11 +222,10 @@ public class MetricsServiceTests : TestCaseBase
         Assert.Single(usage);
         Assert.Equal("1", usage[0].ClientId);
         Assert.Equal("Client1", usage[0].ClientName);
-        // Note: With raw metrics we only get current snapshot, not historical daily data
-        Assert.Single(usage[0].DataPoints);
-        Assert.Equal(DateTime.UtcNow.Date, usage[0].DataPoints[0].Date);
-        Assert.Equal(2000, usage[0].DataPoints[0].BytesTransferred);
-        Assert.Equal(500, usage[0].DataPoints[0].BytesUploaded);
-        Assert.Equal(1500, usage[0].DataPoints[0].BytesDownloaded);
+        Assert.Equal(30, usage[0].DataPoints.Count);
+        Assert.All(usage[0].DataPoints, point =>
+        {
+            Assert.Equal(point.BytesUploaded + point.BytesDownloaded, point.BytesTransferred);
+        });
     }
 }
