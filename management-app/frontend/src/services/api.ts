@@ -17,6 +17,18 @@ export interface ClientUsage {
   totalConnections: number;
 }
 
+export interface HourlyDataPoint {
+  timestamp: string;
+  bytesTransferred: number;
+  connections: number;
+}
+
+export interface HourlyUsageResponse {
+  clientId: string;
+  clientName: string;
+  dataPoints: HourlyDataPoint[];
+}
+
 export interface Client {
   id: number;
   name: string;
@@ -103,6 +115,10 @@ export const api = {
     return fetchWithAuth(`${API_BASE_URL}/v1/clients/${id}`, token, {
       method: 'DELETE',
     });
+  },
+
+  async getHourlyUsage(token: string, hours = 24): Promise<HourlyUsageResponse[]> {
+    return fetchWithAuth(`${API_BASE_URL}/v1/reports/hourly?hours=${hours}`, token);
   },
 };
 

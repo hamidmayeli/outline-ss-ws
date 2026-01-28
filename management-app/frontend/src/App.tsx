@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Clients } from './pages/Clients';
 import { PieChart } from './pages/PieChart';
+import { HourlyLineChart } from './pages/HourlyLineChart';
 import UpdateNotification from './components/UpdateNotification';
 import './App.css';
 
@@ -31,6 +32,14 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <PieChart />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports/hourly"
+                element={
+                  <ProtectedRoute>
+                    <HourlyLineChart />
                   </ProtectedRoute>
                 }
               />

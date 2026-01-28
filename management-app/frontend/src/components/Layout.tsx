@@ -50,7 +50,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       className="dropdown-item"
                       onClick={() => setShowReportsDropdown(false)}
                     >
-                      Pie Chart
+                      Pie Chart Usage
+                    </Link>
+                    <Link
+                      to="/reports/hourly"
+                      className="dropdown-item"
+                      onClick={() => setShowReportsDropdown(false)}
+                    >
+                      Hourly Usage
                     </Link>
                   </div>
                 )}
