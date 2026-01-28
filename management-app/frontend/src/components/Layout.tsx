@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -13,6 +13,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showReportsDropdown, setShowReportsDropdown] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -36,6 +37,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               >
                 Clients
               </Link>
+              <div className="nav-dropdown">
+                <button 
+                  className={`nav-link dropdown-toggle ${location.pathname.startsWith('/reports') ? 'active' : ''}`}
+                  onClick={() => setShowReportsDropdown(!showReportsDropdown)}
+                >
+                  Reports ▾
+                </button>
+                {showReportsDropdown && (
+                  <div className="dropdown-menu">
+                    <Link 
+                      to="/reports/piechart" 
+                      className="dropdown-item"
+                      onClick={() => setShowReportsDropdown(false)}
+                    >
+                      Pie Chart
+                    </Link>
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
           <div className="header-right">

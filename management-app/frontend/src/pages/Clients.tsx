@@ -4,15 +4,8 @@ import { api, ApiError } from '../services/api';
 import type { Client } from '../services/api';
 import { ClientModal } from '../components/ClientModal';
 import { ClientConfigModal } from '../components/ClientConfigModal';
+import { formatBytes } from '../utils/formatBytes';
 import './Clients.css';
-
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-};
 
 type SortColumn = 'name' | 'usage';
 type SortDirection = 'asc' | 'desc';

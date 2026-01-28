@@ -6,6 +6,7 @@ import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Clients } from './pages/Clients';
+import { PieChart } from './pages/PieChart';
 import UpdateNotification from './components/UpdateNotification';
 import './App.css';
 
@@ -22,6 +23,14 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <Clients />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports/piechart"
+                element={
+                  <ProtectedRoute>
+                    <PieChart />
                   </ProtectedRoute>
                 }
               />
