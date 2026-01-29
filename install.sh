@@ -535,12 +535,17 @@ EOF
         chmod +x "$INSTALL_DIR/renew-cert.sh"
     fi
     
-    # Add cron jobs
-    (crontab -l 2>/dev/null; echo "0 3 * * 0 $INSTALL_DIR/update.sh >> $INSTALL_DIR/update.log 2>&1") | crontab -
-    (crontab -l 2>/dev/null; echo "0 2 * * * $INSTALL_DIR/renew-cert.sh >> $INSTALL_DIR/cert-renewal.log 2>&1") | crontab -
+    # Add cron jobs (ensure both are present, avoid duplicates)
+    CRON_UPDATE_LINE="0 3 * * * $INSTALL_DIR/update.sh >> $INSTALL_DIR/update.log 2>&1"
+    CRON_RENEW_LINE="0 2 * * * $INSTALL_DIR/renew-cert.sh >> $INSTALL_DIR/cert-renewal.log 2>&1"
+
+    crontab -l 2>/dev/null | \
+        grep -v -F "$INSTALL_DIR/update.sh" | \
+        grep -v -F "$INSTALL_DIR/renew-cert.sh" | \
+        { cat; echo "$CRON_UPDATE_LINE"; echo "$CRON_RENEW_LINE"; } | crontab -
     
     print_success "Cron jobs configured"
-    echo "  - Docker update: Weekly at 3:00 AM (Sunday)"
+    echo "  - Docker update: Daily at 3:00 AM"
     echo "  - SSL renewal: Daily at 2:00 AM"
 }
 
