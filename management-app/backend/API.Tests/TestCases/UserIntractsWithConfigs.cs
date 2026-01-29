@@ -44,7 +44,7 @@ public class UserIntractsWithConfigs : TestCaseBase
     }
 
     [Fact]
-    public async Task When_GetConfig_WithInactiveClient_ReturnsNotFound()
+    public async Task When_GetConfig_WithInactiveClient_ReturnsConflict()
     {
         var clientId = Guid.NewGuid().ToString();
 
@@ -60,7 +60,8 @@ public class UserIntractsWithConfigs : TestCaseBase
 
         var response = await client.GetAsync($"/api/v1/config/{clientId}");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("Limits reached.", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
