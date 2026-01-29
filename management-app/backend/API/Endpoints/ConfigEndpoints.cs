@@ -18,15 +18,18 @@ public static class ConfigEndpoints
             return group;
         }
     }
-    private static async Task<Results<Ok<ConfigResponse>, NotFound>> GetConfigAsync(
+    private static async Task<Results<Ok<ConfigResponse>, NotFound, Conflict<string>>> GetConfigAsync(
         string clientId,
         IClientRepository clientRepository,
         AppSettings appSettings)
     {
         var client = await clientRepository.GetByIdAsync(clientId);
 
-        if (client == null || !client.IsActive)
+        if (client == null)
             return TypedResults.NotFound();
+
+        if (!client.IsActive)
+            return TypedResults.Conflict("Limits reached.");
 
         var config = await BuildConfig(client, appSettings);
 

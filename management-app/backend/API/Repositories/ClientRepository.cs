@@ -38,7 +38,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
         return await LoadAsync();
     }
 
-    public Task<Client> CreateAsync(string name)
+    public Task<Client> CreateAsync(string name, long? limit)
     {
         var secret = GenerateSecret();
 
@@ -48,6 +48,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             Name = name,
             Secret = secret,
             Cipher = "chacha20-ietf-poly1305",
+            Limit = limit,
             IsActive = true,
             AccessKeyId = 0 // Will be assigned based on existing clients
         };
@@ -86,6 +87,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             existingClient.Cipher = client.Cipher;
             existingClient.IsActive = client.IsActive;
             existingClient.AccessKeyId = client.AccessKeyId;
+            existingClient.Limit = client.Limit;
 
             await SaveAsync(clients);
 

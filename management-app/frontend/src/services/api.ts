@@ -34,16 +34,19 @@ export interface Client {
   name: string;
   secret: string;
   cipher: string;
+  limit?: number | null;
   isActive: boolean;
   usageLast30Days?: ClientUsage;
 }
 
 export interface CreateClientRequest {
   name: string;
+  limit?: number | null;
 }
 
 export interface UpdateClientRequest {
   name: string;
+  limit?: number | null;
 }
 
 class ApiError extends Error {

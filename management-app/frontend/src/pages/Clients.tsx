@@ -189,7 +189,11 @@ export const Clients: React.FC = () => {
             <tbody>
               {sortedClients.map((client) => (
                 <tr key={client.id}>
-                  <td>{client.name}</td>
+                  <td>
+                    <span className={client.isActive ? '' : 'client-name-inactive'}>
+                      {client.name}
+                    </span>
+                  </td>
                   <td className="status-column">
                     <span className={`status-badge ${client.isActive ? 'active' : 'inactive'}`}>
                       {client.isActive ? 'Active' : 'Inactive'}
@@ -204,9 +208,17 @@ export const Clients: React.FC = () => {
                         <div className="usage-stat">
                           ↓ {formatBytes(client.usageLast30Days.bytesDownloaded)}
                         </div>
+                        <div className="usage-stat">
+                          Limit: {client.limit != null ? formatBytes(client.limit) : 'No limit'}
+                        </div>
                       </>
                     ) : (
-                      <span className="text-muted">No data</span>
+                      <>
+                        <span className="text-muted">No data</span>
+                        <div className="usage-stat">
+                          Limit: {client.limit != null ? formatBytes(client.limit) : 'No limit'}
+                        </div>
+                      </>
                     )}
                   </td>
                   <td className="actions-cell">

@@ -4,6 +4,7 @@ public class ClientResponse
 {
     public required string Id { get; set; }
     public required string Name { get; set; }
+    public long? Limit { get; set; }
     public bool IsActive { get; set; }
     public int AccessKeyId { get; set; }
     public ClientUsageResponse? UsageLast30Days { get; set; }

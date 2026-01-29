@@ -27,7 +27,10 @@ var appSettings = new AppSettings
     TcpPath = builder.Configuration["AppSettings:TcpPath"] ?? "/tcp-ws",
     UdpPath = builder.Configuration["AppSettings:UdpPath"] ?? "/udp-ws",
     OutlineConfigPath = builder.Configuration["AppSettings:OutlineConfigPath"] ?? "/etc/outline/config.yaml",
-    PrometheusUrl = builder.Configuration["AppSettings:PrometheusUrl"] ?? "http://outline-server:9092"
+    PrometheusUrl = builder.Configuration["AppSettings:PrometheusUrl"] ?? "http://outline-server:9092",
+    ClientLimitCheckMinutes = int.TryParse(builder.Configuration["AppSettings:ClientLimitCheckMinutes"], out var checkMinutes)
+        ? checkMinutes
+        : 15
 };
 builder.Services.AddSingleton(appSettings);
 
@@ -58,6 +61,7 @@ builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IClientRepository, ClientRepository>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IOutlineSyncService, OutlineSyncService>();
+builder.Services.AddHostedService<ClientLimitMonitorService>();
 
 // Register HttpClient for MetricsService
 builder.Services.AddHttpClient<IMetricsService, MetricsService>(client =>
