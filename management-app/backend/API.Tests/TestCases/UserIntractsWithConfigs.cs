@@ -53,7 +53,7 @@ public class UserIntractsWithConfigs : TestCaseBase
             Id = clientId,
             Name = "InactiveClient",
             Secret = "secret",
-            IsActive = false
+            IsActive = false,
         });
 
         var client = _fixture.CreateClient();

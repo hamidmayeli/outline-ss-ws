@@ -60,14 +60,9 @@ public class ClientLimitMonitorService : BackgroundService
                 return;
             }
 
-            if (client.Limit is null)
-            {
-                continue;
-            }
-
             var usage = await _metricsService.GetClientUsageLast30DaysAsync(client.Id);
-            var overLimit = usage.TotalBytesTransferred > client.Limit.Value;
-            var shouldBeActive = !overLimit;
+            bool isNotOverLimit() => usage.TotalBytesTransferred <= client.Limit.Value;
+            var shouldBeActive = client.Limit is null || isNotOverLimit();
 
             if (client.IsActive == shouldBeActive)
             {

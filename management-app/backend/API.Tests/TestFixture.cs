@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OutlineManager.API.Interfaces;
 using OutlineManager.API.Models;
+using OutlineManager.API.Services;
 using OutlineManager.API.Tests.Mocks;
 using OutlineManager.API.Tests.TestHelpers;
 using System.Net;
@@ -33,6 +35,17 @@ public class TestFixture : WebApplicationFactory<Program>
             // Replace HttpClient for MetricsService with mocked version
             services.AddHttpClient<IMetricsService, Services.MetricsService>()
                 .ConfigurePrimaryHttpMessageHandler(() => _mockHttpHandler);
+
+            // Disable background limit monitor during tests
+            var hostedServices = services
+                .Where(service => service.ServiceType == typeof(IHostedService) &&
+                                  service.ImplementationType == typeof(ClientLimitMonitorService))
+                .ToList();
+
+            foreach (var hostedService in hostedServices)
+            {
+                services.Remove(hostedService);
+            }
         });
 
         base.ConfigureWebHost(builder);
