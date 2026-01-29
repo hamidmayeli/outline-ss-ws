@@ -3,6 +3,7 @@ import {
   LineChart as RechartsLineChart,
   Line,
   ResponsiveContainer,
+  Legend,
   Tooltip,
   XAxis,
   YAxis,
@@ -155,7 +156,6 @@ export const HourlyLineChart: React.FC = () => {
         </div>
         <div className="hourlychart-controls">
           <label className="hours-label">
-            Hours
             <select value={hours} onChange={(event) => setHours(Number(event.target.value))}>
               <option value={6}>6h</option>
               <option value={12}>12h</option>
@@ -207,6 +207,7 @@ export const HourlyLineChart: React.FC = () => {
                 <XAxis dataKey="label" />
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<PerUserTooltip />} />
+                <Legend />
                 {userSeries.map((series) => (
                   <Line
                     key={series.key}

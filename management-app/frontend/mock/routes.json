@@ -1,0 +1,7 @@
+{
+  "/api/v1/clients": "/clients",
+  "/api/v1/clients/:id": "/clients/:id",
+  "/api/v1/reports/hourly?hours=*": "/hourly_usage",
+  "/api/v1/config/:id": "/configs/:id",
+  "/api/v1/auth/login": "/login"
+}

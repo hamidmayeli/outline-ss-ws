@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PieChart as RechartsPieChart, Pie, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart as RechartsPieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { api, ApiError } from '../services/api';
 import { formatBytes } from '../utils/formatBytes';
@@ -120,15 +120,28 @@ export const PieChart: React.FC = () => {
                   nameKey="name"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  formatter={(value: unknown, entry: unknown) => {
-                    const data = (entry as { payload?: ChartData }).payload;
-                    if (!data) return String(value);
-                    return `${data.name}: ${formatBytes(data.value)} (${data.percentage.toFixed(1)}%)`;
-                  }}
-                />
               </RechartsPieChart>
             </ResponsiveContainer>
+          </div>
+          <div className="piechart-legend-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Usage</th>
+                  <th>Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chartData.map((entry) => (
+                  <tr key={entry.name} style={{ color: entry.fill }}>
+                    <td>{entry.name}</td>
+                    <td>{formatBytes(entry.value)}</td>
+                    <td>{entry.percentage.toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

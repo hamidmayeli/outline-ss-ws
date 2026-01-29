@@ -21,8 +21,10 @@
 
 .piechart-content {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
+  gap: 1.5rem;
   background: var(--bg-primary);
   padding: 2rem;
   border-radius: 8px;
@@ -32,6 +34,31 @@
 .chart-wrapper {
   width: 100%;
   max-width: 800px;
+  margin: 0 auto;
+}
+
+.piechart-legend-table {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.piechart-legend-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.piechart-legend-table th,
+.piechart-legend-table td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.piechart-legend-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .custom-tooltip {

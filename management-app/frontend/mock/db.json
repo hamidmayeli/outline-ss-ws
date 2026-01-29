@@ -1,0 +1,114 @@
+{
+  "clients": [
+    {
+      "id": 1,
+      "name": "Alpha",
+      "secret": "alpha-secret",
+      "cipher": "aes-256-gcm",
+      "limit": 10737418240,
+      "isActive": true,
+      "usageLast30Days": {
+        "totalBytesTransferred": 7340032000,
+        "bytesUploaded": 2147483648,
+        "bytesDownloaded": 5192548352,
+        "tunnelTimeSeconds": 86400,
+        "totalConnections": 124
+      }
+    },
+    {
+      "id": 2,
+      "name": "Bravo",
+      "secret": "bravo-secret",
+      "cipher": "chacha20-ietf-poly1305",
+      "limit": 5368709120,
+      "isActive": true,
+      "usageLast30Days": {
+        "totalBytesTransferred": 4294967296,
+        "bytesUploaded": 1342177280,
+        "bytesDownloaded": 2952790016,
+        "tunnelTimeSeconds": 70200,
+        "totalConnections": 98
+      }
+    },
+    {
+      "id": 3,
+      "name": "Charlie",
+      "secret": "charlie-secret",
+      "cipher": "aes-128-gcm",
+      "limit": null,
+      "isActive": false,
+      "usageLast30Days": {
+        "totalBytesTransferred": 2147483648,
+        "bytesUploaded": 805306368,
+        "bytesDownloaded": 1342177280,
+        "tunnelTimeSeconds": 28800,
+        "totalConnections": 43
+      }
+    }
+  ],
+  "hourly_usage": [
+    {
+      "id": 1,
+      "clientId": "1",
+      "clientName": "Alpha",
+      "dataPoints": [
+        { "timestamp": "2026-01-28T12:00:00.000Z", "bytesTransferred": 120000000, "connections": 4 },
+        { "timestamp": "2026-01-28T14:00:00.000Z", "bytesTransferred": 98000000, "connections": 6 },
+        { "timestamp": "2026-01-28T16:00:00.000Z", "bytesTransferred": 150000000, "connections": 8 },
+        { "timestamp": "2026-01-28T18:00:00.000Z", "bytesTransferred": 175000000, "connections": 5 },
+        { "timestamp": "2026-01-28T20:00:00.000Z", "bytesTransferred": 142000000, "connections": 7 },
+        { "timestamp": "2026-01-28T22:00:00.000Z", "bytesTransferred": 110000000, "connections": 4 },
+        { "timestamp": "2026-01-29T00:00:00.000Z", "bytesTransferred": 98000000, "connections": 3 },
+        { "timestamp": "2026-01-29T02:00:00.000Z", "bytesTransferred": 134000000, "connections": 5 },
+        { "timestamp": "2026-01-29T04:00:00.000Z", "bytesTransferred": 121000000, "connections": 6 },
+        { "timestamp": "2026-01-29T06:00:00.000Z", "bytesTransferred": 89000000, "connections": 4 },
+        { "timestamp": "2026-01-29T08:00:00.000Z", "bytesTransferred": 96000000, "connections": 5 },
+        { "timestamp": "2026-01-29T10:00:00.000Z", "bytesTransferred": 115000000, "connections": 6 }
+      ]
+    },
+    {
+      "id": 2,
+      "clientId": "2",
+      "clientName": "Bravo",
+      "dataPoints": [
+        { "timestamp": "2026-01-28T12:00:00.000Z", "bytesTransferred": 65000000, "connections": 2 },
+        { "timestamp": "2026-01-28T14:00:00.000Z", "bytesTransferred": 72000000, "connections": 3 },
+        { "timestamp": "2026-01-28T16:00:00.000Z", "bytesTransferred": 91000000, "connections": 4 },
+        { "timestamp": "2026-01-28T18:00:00.000Z", "bytesTransferred": 104000000, "connections": 4 },
+        { "timestamp": "2026-01-28T20:00:00.000Z", "bytesTransferred": 88000000, "connections": 3 },
+        { "timestamp": "2026-01-28T22:00:00.000Z", "bytesTransferred": 76000000, "connections": 2 },
+        { "timestamp": "2026-01-29T00:00:00.000Z", "bytesTransferred": 69000000, "connections": 2 },
+        { "timestamp": "2026-01-29T02:00:00.000Z", "bytesTransferred": 81000000, "connections": 3 },
+        { "timestamp": "2026-01-29T04:00:00.000Z", "bytesTransferred": 93000000, "connections": 3 },
+        { "timestamp": "2026-01-29T06:00:00.000Z", "bytesTransferred": 70000000, "connections": 2 },
+        { "timestamp": "2026-01-29T08:00:00.000Z", "bytesTransferred": 76000000, "connections": 3 },
+        { "timestamp": "2026-01-29T10:00:00.000Z", "bytesTransferred": 84000000, "connections": 4 }
+      ]
+    },
+    {
+      "id": 3,
+      "clientId": "3",
+      "clientName": "Charlie",
+      "dataPoints": [
+        { "timestamp": "2026-01-28T12:00:00.000Z", "bytesTransferred": 42000000, "connections": 1 },
+        { "timestamp": "2026-01-28T14:00:00.000Z", "bytesTransferred": 38000000, "connections": 1 },
+        { "timestamp": "2026-01-28T16:00:00.000Z", "bytesTransferred": 60000000, "connections": 2 },
+        { "timestamp": "2026-01-28T18:00:00.000Z", "bytesTransferred": 55000000, "connections": 2 },
+        { "timestamp": "2026-01-28T20:00:00.000Z", "bytesTransferred": 47000000, "connections": 1 },
+        { "timestamp": "2026-01-28T22:00:00.000Z", "bytesTransferred": 36000000, "connections": 1 },
+        { "timestamp": "2026-01-29T00:00:00.000Z", "bytesTransferred": 30000000, "connections": 1 },
+        { "timestamp": "2026-01-29T02:00:00.000Z", "bytesTransferred": 41000000, "connections": 1 },
+        { "timestamp": "2026-01-29T04:00:00.000Z", "bytesTransferred": 52000000, "connections": 2 },
+        { "timestamp": "2026-01-29T06:00:00.000Z", "bytesTransferred": 34000000, "connections": 1 },
+        { "timestamp": "2026-01-29T08:00:00.000Z", "bytesTransferred": 39000000, "connections": 1 },
+        { "timestamp": "2026-01-29T10:00:00.000Z", "bytesTransferred": 45000000, "connections": 2 }
+      ]
+    }
+  ],
+  "configs": [
+    { "id": 1, "value": "ssconf://alpha" },
+    { "id": 2, "value": "ssconf://bravo" },
+    { "id": 3, "value": "ssconf://charlie" }
+  ],
+  "login": { "token": "mock-token" }
+}
