@@ -76,7 +76,7 @@ public static class ClientEndpoints
             return TypedResults.BadRequest("Client name already exists");
         }
 
-        var createdClient = await clientRepository.CreateAsync(request.Name);
+        var createdClient = await clientRepository.CreateAsync(request.Name, request.Limit);
         
         // Sync to outline server
         var allClients = await clientRepository.GetAllAsync();
@@ -111,6 +111,8 @@ public static class ClientEndpoints
             }
             existingClient.Name = request.Name;
         }
+
+        existingClient.Limit = request.Limit;
 
         var updatedClient = await clientRepository.UpdateAsync(id, existingClient);
         
@@ -156,6 +158,7 @@ public static class ClientEndpoints
         {
             Id = client.Id,
             Name = client.Name,
+            Limit = client.Limit,
             IsActive = client.IsActive,
             AccessKeyId = client.AccessKeyId,
             UsageLast30Days = usage
