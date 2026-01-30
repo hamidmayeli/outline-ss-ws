@@ -11,6 +11,7 @@ import {
   Brush,
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+import { useTimeZone } from '../contexts/TimeZoneContext';
 import { api, ApiError } from '../services/api';
 import { formatBytes } from '../utils/formatBytes';
 import './WeeklyComparisonChart.css';
@@ -19,7 +20,7 @@ interface WeekSeries {
   key: string;
   name: string;
   color: string;
-  weekStart: Date;
+  weekStart: number;
 }
 
 type WeekHourPoint = {
@@ -40,12 +41,12 @@ const HOUR_MS = 60 * 60 * 1000;
 const WEEK_MS = WEEK_HOURS * HOUR_MS;
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const getWeekStart = (date: Date) => {
-  const result = new Date(date);
-  const dayIndex = (result.getDay() + 6) % 7;
-  result.setHours(0, 0, 0, 0);
-  result.setDate(result.getDate() - dayIndex);
-  return result;
+const getWeekStartOffset = (timestamp: number, offsetMs: number) => {
+  const offsetTimestamp = timestamp + offsetMs;
+  const date = new Date(offsetTimestamp);
+  const dayIndex = (date.getUTCDay() + 6) % 7;
+  const startOfDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  return startOfDay - dayIndex * 24 * 60 * 60 * 1000;
 };
 
 const formatHourLabel = (hourIndex: number) => {
@@ -66,6 +67,8 @@ export const WeeklyComparisonChart: React.FC = () => {
   const [weekSeries, setWeekSeries] = useState<WeekSeries[]>([]);
   const [chartData, setChartData] = useState<WeekHourPoint[]>([]);
   const { token, logout } = useAuth();
+  const { offsetMinutes, setOffsetMinutes, options } = useTimeZone();
+  const offsetMs = offsetMinutes * 60 * 1000;
 
   const loadUsage = useCallback(async () => {
     if (!token) return;
@@ -74,15 +77,15 @@ export const WeeklyComparisonChart: React.FC = () => {
       setError('');
       setLoading(true);
       const usage = await api.getHourlyUsage(token, HOURS_LOOKBACK);
-      const now = new Date();
-      const oldestTime = now.getTime() - HOURS_LOOKBACK * HOUR_MS;
-      const currentWeekStart = getWeekStart(now);
-      const weekStarts: Date[] = [];
-      const cursor = new Date(currentWeekStart);
+      const now = Date.now();
+      const oldestTime = now - HOURS_LOOKBACK * HOUR_MS;
+      const currentWeekStart = getWeekStartOffset(now, offsetMs);
+      const weekStarts: number[] = [];
+      let cursor = currentWeekStart;
 
-      while (cursor.getTime() + WEEK_MS > oldestTime) {
-        weekStarts.push(new Date(cursor));
-        cursor.setDate(cursor.getDate() - 7);
+      while (cursor + WEEK_MS > oldestTime + offsetMs) {
+        weekStarts.push(cursor);
+        cursor -= WEEK_MS;
       }
 
       const series = weekStarts.map((start, index) => ({
@@ -105,11 +108,12 @@ export const WeeklyComparisonChart: React.FC = () => {
           const timestamp = new Date(point.timestamp).getTime();
           if (Number.isNaN(timestamp) || timestamp < oldestTime) return;
 
-          const weekStart = getWeekStart(new Date(timestamp));
-          const offset = Math.floor((currentWeekStart.getTime() - weekStart.getTime()) / WEEK_MS);
+          const weekStart = getWeekStartOffset(timestamp, offsetMs);
+          const offset = Math.floor((currentWeekStart - weekStart) / WEEK_MS);
           if (offset < 0 || offset >= series.length) return;
 
-          const hourIndex = Math.floor((timestamp - weekStart.getTime()) / HOUR_MS);
+          const offsetTimestamp = timestamp + offsetMs;
+          const hourIndex = Math.floor((offsetTimestamp - weekStart) / HOUR_MS);
           if (hourIndex < 0 || hourIndex >= WEEK_HOURS) return;
 
           const key = series[offset].key;
@@ -129,7 +133,7 @@ export const WeeklyComparisonChart: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, logout]);
+  }, [token, logout, offsetMs]);
 
   useEffect(() => {
     loadUsage();
@@ -146,10 +150,18 @@ export const WeeklyComparisonChart: React.FC = () => {
     }, 0);
   }, [chartData, weekSeries]);
 
-  const WeeklyTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }> }) => {
+  const WeeklyTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ name: string; value: number; color: string; payload?: WeekHourPoint }>;
+  }) => {
     if (active && payload && payload.length) {
+      const label = payload[0]?.payload?.label;
       return (
         <div className="custom-tooltip">
+          {label && <p className="tooltip-value">{label}</p>}
           {payload.map((entry) => (
             <p key={entry.name} className="tooltip-value" style={{ color: entry.color }}>
               {entry.name}: {formatBytes(entry.value)}
@@ -180,6 +192,15 @@ export const WeeklyComparisonChart: React.FC = () => {
           </p>
         </div>
         <div className="weeklychart-controls">
+          <label className="timezone-label">
+            <select value={offsetMinutes} onChange={(event) => setOffsetMinutes(Number(event.target.value))}>
+              {options.map((option) => (
+                <option key={option.offsetMinutes} value={option.offsetMinutes}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button className="btn-secondary" onClick={loadUsage}>
             Refresh
           </button>

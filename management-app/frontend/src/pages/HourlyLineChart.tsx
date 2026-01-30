@@ -11,6 +11,7 @@ import {
   Brush,
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+import { useTimeZone } from '../contexts/TimeZoneContext';
 import { api, ApiError } from '../services/api';
 import { formatBytes } from '../utils/formatBytes';
 import './HourlyLineChart.css';
@@ -47,6 +48,20 @@ export const HourlyLineChart: React.FC = () => {
   const [perUserData, setPerUserData] = useState<PerUserPoint[]>([]);
   const [userSeries, setUserSeries] = useState<UserSeries[]>([]);
   const { token, logout } = useAuth();
+  const { offsetMinutes, setOffsetMinutes, options } = useTimeZone();
+  const offsetMs = offsetMinutes * 60 * 1000;
+
+  const formatTimeLabel = useCallback((timestamp: number) => {
+    const date = new Date(timestamp + offsetMs);
+    const hour = date.getUTCHours();
+    const minute = date.getUTCMinutes();
+    if (hour === 0) {
+      const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+      const day = date.getUTCDate().toString().padStart(2, '0');
+      return `${month}/${day}`;
+    }
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  }, [offsetMs]);
 
   const loadUsage = useCallback(async () => {
     if (!token) return;
@@ -67,7 +82,7 @@ export const HourlyLineChart: React.FC = () => {
         client.dataPoints.forEach((point) => {
           const date = new Date(point.timestamp);
           const timestamp = date.getTime();
-          const label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const label = formatTimeLabel(timestamp);
 
           const existingTotal = totals.get(timestamp);
           if (existingTotal) {
@@ -98,7 +113,7 @@ export const HourlyLineChart: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, logout, hours]);
+  }, [token, logout, hours, formatTimeLabel]);
 
   useEffect(() => {
     loadUsage();
@@ -122,10 +137,18 @@ export const HourlyLineChart: React.FC = () => {
     return null;
   };
 
-  const PerUserTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }> }) => {
+  const PerUserTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ name: string; value: number; color: string; payload?: PerUserPoint }>;
+  }) => {
     if (active && payload && payload.length) {
+      const label = payload[0]?.payload?.label;
       return (
         <div className="custom-tooltip">
+          {label && <p className="tooltip-name">{label}</p>}
           {payload.map((entry) => (
             <p key={entry.name} className="tooltip-value" style={{ color: entry.color }}>
               {entry.name}: {formatBytes(entry.value)}
@@ -156,6 +179,15 @@ export const HourlyLineChart: React.FC = () => {
           </p>
         </div>
         <div className="hourlychart-controls">
+          <label className="timezone-label">
+            <select value={offsetMinutes} onChange={(event) => setOffsetMinutes(Number(event.target.value))}>
+              {options.map((option) => (
+                <option key={option.offsetMinutes} value={option.offsetMinutes}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="hours-label">
             <select value={hours} onChange={(event) => setHours(Number(event.target.value))}>
               <option value={6}>6h</option>

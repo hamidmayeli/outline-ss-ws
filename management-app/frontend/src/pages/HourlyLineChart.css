@@ -29,7 +29,8 @@
   gap: 0.75rem;
 }
 
-.hours-label {
+.hours-label,
+.timezone-label {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -37,7 +38,8 @@
   color: var(--text-secondary);
 }
 
-.hours-label select {
+.hours-label select,
+.timezone-label select {
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;

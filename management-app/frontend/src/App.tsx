@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { TimeZoneProvider } from './contexts/TimeZoneContext';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
@@ -15,10 +16,11 @@ import './App.css';
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Layout>
-            <Routes>
+      <TimeZoneProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Layout>
+              <Routes>
               <Route path="/login" element={<Login />} />
               <Route
                 path="/clients"
@@ -54,11 +56,12 @@ const App: React.FC = () => {
               />
               <Route path="/" element={<Navigate to="/clients" replace />} />
               <Route path="*" element={<Navigate to="/clients" replace />} />
-            </Routes>
-          </Layout>
-          <UpdateNotification />
-        </BrowserRouter>
-      </AuthProvider>
+              </Routes>
+            </Layout>
+            <UpdateNotification />
+          </BrowserRouter>
+        </AuthProvider>
+      </TimeZoneProvider>
     </ThemeProvider>
   );
 };
