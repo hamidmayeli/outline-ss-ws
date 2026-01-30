@@ -8,6 +8,7 @@ import { Login } from './pages/Login';
 import { Clients } from './pages/Clients';
 import { PieChart } from './pages/PieChart';
 import { HourlyLineChart } from './pages/HourlyLineChart';
+import { WeeklyComparisonChart } from './pages/WeeklyComparisonChart';
 import UpdateNotification from './components/UpdateNotification';
 import './App.css';
 
@@ -40,6 +41,14 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <HourlyLineChart />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports/weekly"
+                element={
+                  <ProtectedRoute>
+                    <WeeklyComparisonChart />
                   </ProtectedRoute>
                 }
               />

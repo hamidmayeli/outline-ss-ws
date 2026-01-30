@@ -1,9 +1,9 @@
-.hourlychart-container {
+.weeklychart-container {
   padding: 2rem;
   margin: 0 auto;
 }
 
-.hourlychart-header {
+.weeklychart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -12,56 +12,28 @@
   flex-wrap: wrap;
 }
 
-.hourlychart-header h1 {
+.weeklychart-header h1 {
   margin: 0 0 0.5rem 0;
   color: var(--text-primary);
 }
 
-.hourlychart-subtitle {
+.weeklychart-subtitle {
   margin: 0;
   color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
-.hourlychart-controls {
+.weeklychart-controls {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.hours-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.hours-label select {
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-}
-
-.hourlychart-content {
+.weeklychart-content {
   background: var(--bg-primary);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: var(--shadow-md);
-}
-
-.hourlychart-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.hourlychart-subsection h2 {
-  margin: 0 0 0.4rem 0;
-  color: var(--text-primary);
 }
 
 .custom-tooltip {
@@ -72,12 +44,6 @@
   box-shadow: var(--shadow-md);
 }
 
-.tooltip-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 0.25rem 0;
-}
-
 .tooltip-value {
   color: var(--text-secondary);
   margin: 0;
@@ -85,7 +51,7 @@
 }
 
 @media (max-width: 768px) {
-  .hourlychart-content {
+  .weeklychart-content {
     padding: 1rem;
   }
 }

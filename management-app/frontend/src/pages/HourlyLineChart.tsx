@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Brush,
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { api, ApiError } from '../services/api';
@@ -185,6 +186,7 @@ export const HourlyLineChart: React.FC = () => {
                 <XAxis dataKey="label" />
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<CustomTooltip />} />
+                <Brush dataKey="label" height={22} travellerWidth={12} />
                 <Line
                   type="monotone"
                   dataKey="bytes"
@@ -208,6 +210,7 @@ export const HourlyLineChart: React.FC = () => {
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<PerUserTooltip />} />
                 <Legend />
+                <Brush dataKey="label" height={22} travellerWidth={12} />
                 {userSeries.map((series) => (
                   <Line
                     key={series.key}

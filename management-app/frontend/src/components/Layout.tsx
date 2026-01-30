@@ -59,6 +59,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     >
                       Hourly Usage
                     </Link>
+                    <Link
+                      to="/reports/weekly"
+                      className="dropdown-item"
+                      onClick={() => setShowReportsDropdown(false)}
+                    >
+                      Weekly Comparison
+                    </Link>
                   </div>
                 )}
               </div>
