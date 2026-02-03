@@ -129,7 +129,7 @@ export const HourlyLineChart: React.FC = () => {
       const data = payload[0].payload;
       return (
         <div className="custom-tooltip">
-          <p className="tooltip-name">{data.label}</p>
+          <p className="tooltip-name">{formatTimeLabel(data.timestamp)}</p>
           <p className="tooltip-value">{formatBytes(data.bytes)}</p>
         </div>
       );
@@ -145,10 +145,12 @@ export const HourlyLineChart: React.FC = () => {
     payload?: Array<{ name: string; value: number; color: string; payload?: PerUserPoint }>;
   }) => {
     if (active && payload && payload.length) {
-      const label = payload[0]?.payload?.label;
+      const timestamp = payload[0]?.payload?.timestamp;
       return (
         <div className="custom-tooltip">
-          {label && <p className="tooltip-name">{label}</p>}
+          {typeof timestamp === 'number' && (
+            <p className="tooltip-name">{formatTimeLabel(timestamp)}</p>
+          )}
           {payload.map((entry) => (
             <p key={entry.name} className="tooltip-value" style={{ color: entry.color }}>
               {entry.name}: {formatBytes(entry.value)}
@@ -215,10 +217,18 @@ export const HourlyLineChart: React.FC = () => {
             <ResponsiveContainer width="100%" height={420}>
               <RechartsLineChart data={totalData} margin={{ top: 20, right: 24, left: 12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(value) => formatTimeLabel(Number(value))}
+                />
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<CustomTooltip />} />
-                <Brush dataKey="label" height={22} travellerWidth={12} />
+                <Brush
+                  dataKey="timestamp"
+                  height={22}
+                  travellerWidth={12}
+                  tickFormatter={(value) => formatTimeLabel(Number(value))}
+                />
                 <Line
                   type="monotone"
                   dataKey="bytes"
@@ -238,11 +248,19 @@ export const HourlyLineChart: React.FC = () => {
             <ResponsiveContainer width="100%" height={420}>
               <RechartsLineChart data={perUserData} margin={{ top: 20, right: 24, left: 12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(value) => formatTimeLabel(Number(value))}
+                />
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<PerUserTooltip />} />
                 <Legend />
-                <Brush dataKey="label" height={22} travellerWidth={12} />
+                <Brush
+                  dataKey="timestamp"
+                  height={22}
+                  travellerWidth={12}
+                  tickFormatter={(value) => formatTimeLabel(Number(value))}
+                />
                 {userSeries.map((series) => (
                   <Line
                     key={series.key}
