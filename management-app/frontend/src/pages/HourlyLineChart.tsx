@@ -47,6 +47,7 @@ export const HourlyLineChart: React.FC = () => {
   const [totalData, setTotalData] = useState<ChartPoint[]>([]);
   const [perUserData, setPerUserData] = useState<PerUserPoint[]>([]);
   const [userSeries, setUserSeries] = useState<UserSeries[]>([]);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const { token, logout } = useAuth();
   const { offsetMinutes, setOffsetMinutes, options } = useTimeZone();
   const offsetMs = offsetMinutes * 60 * 1000;
@@ -124,6 +125,23 @@ export const HourlyLineChart: React.FC = () => {
     [totalData]
   );
 
+  const visibleUserSeries = useMemo(
+    () => userSeries.filter((series) => !hiddenSeries.has(series.key)),
+    [userSeries, hiddenSeries]
+  );
+
+  const toggleSeries = useCallback((key: string) => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartPoint }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -161,6 +179,22 @@ export const HourlyLineChart: React.FC = () => {
     }
     return null;
   };
+
+  const renderPerUserLegend = () => (
+    <div className="hourlychart-legend">
+      {userSeries.map((series) => (
+        <label key={series.key} className="hourlychart-legend-item">
+          <input
+            type="checkbox"
+            checked={!hiddenSeries.has(series.key)}
+            onChange={() => toggleSeries(series.key)}
+          />
+          <span className="hourlychart-legend-color" style={{ backgroundColor: series.color }} />
+          <span className="hourlychart-legend-label">{series.name}</span>
+        </label>
+      ))}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -254,14 +288,14 @@ export const HourlyLineChart: React.FC = () => {
                 />
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<PerUserTooltip />} />
-                <Legend />
+                <Legend content={renderPerUserLegend} />
                 <Brush
                   dataKey="timestamp"
                   height={22}
                   travellerWidth={12}
                   tickFormatter={(value) => formatTimeLabel(Number(value))}
                 />
-                {userSeries.map((series) => (
+                {visibleUserSeries.map((series) => (
                   <Line
                     key={series.key}
                     type="monotone"
