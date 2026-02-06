@@ -3,7 +3,6 @@ import {
   LineChart as RechartsLineChart,
   Line,
   ResponsiveContainer,
-  Legend,
   Tooltip,
   XAxis,
   YAxis,
@@ -64,6 +63,16 @@ export const HourlyLineChart: React.FC = () => {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   }, [offsetMs]);
 
+  const formatTimeLabelTooltip = useCallback((timestamp: number) => {
+    const date = new Date(timestamp + offsetMs);
+    const hour = date.getUTCHours();
+    const minute = date.getUTCMinutes();
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = date.getUTCDate().toString().padStart(2, '0');
+
+    return `${month}/${day} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  }, [offsetMs]);
+
   const loadUsage = useCallback(async () => {
     if (!token) return;
 
@@ -83,7 +92,7 @@ export const HourlyLineChart: React.FC = () => {
         client.dataPoints.forEach((point) => {
           const date = new Date(point.timestamp);
           const timestamp = date.getTime();
-          const label = formatTimeLabel(timestamp);
+          const label = formatTimeLabelTooltip(timestamp);
 
           const existingTotal = totals.get(timestamp);
           if (existingTotal) {
@@ -114,7 +123,7 @@ export const HourlyLineChart: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, logout, hours, formatTimeLabel]);
+  }, [token, logout, hours, formatTimeLabelTooltip]);
 
   useEffect(() => {
     loadUsage();
@@ -147,7 +156,7 @@ export const HourlyLineChart: React.FC = () => {
       const data = payload[0].payload;
       return (
         <div className="custom-tooltip">
-          <p className="tooltip-name">{formatTimeLabel(data.timestamp)}</p>
+          <p className="tooltip-name">{formatTimeLabelTooltip(data.timestamp)}</p>
           <p className="tooltip-value">{formatBytes(data.bytes)}</p>
         </div>
       );
@@ -167,7 +176,7 @@ export const HourlyLineChart: React.FC = () => {
       return (
         <div className="custom-tooltip">
           {typeof timestamp === 'number' && (
-            <p className="tooltip-name">{formatTimeLabel(timestamp)}</p>
+            <p className="tooltip-name">{formatTimeLabelTooltip(timestamp)}</p>
           )}
           {payload.map((entry) => (
             <p key={entry.name} className="tooltip-value" style={{ color: entry.color }}>
@@ -261,7 +270,7 @@ export const HourlyLineChart: React.FC = () => {
                   dataKey="timestamp"
                   height={22}
                   travellerWidth={12}
-                  tickFormatter={(value) => formatTimeLabel(Number(value))}
+                  tickFormatter={(value) => formatTimeLabelTooltip(Number(value))}
                 />
                 <Line
                   type="monotone"
@@ -279,6 +288,7 @@ export const HourlyLineChart: React.FC = () => {
             <p className="hourlychart-subtitle">Hourly data usage by client</p>
           </div>
           <div className="hourlychart-content">
+            {renderPerUserLegend()}
             <ResponsiveContainer width="100%" height={420}>
               <RechartsLineChart data={perUserData} margin={{ top: 20, right: 24, left: 12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -288,12 +298,11 @@ export const HourlyLineChart: React.FC = () => {
                 />
                 <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
                 <Tooltip content={<PerUserTooltip />} />
-                <Legend content={renderPerUserLegend} />
                 <Brush
                   dataKey="timestamp"
                   height={22}
                   travellerWidth={12}
-                  tickFormatter={(value) => formatTimeLabel(Number(value))}
+                  tickFormatter={(value) => formatTimeLabelTooltip(Number(value))}
                 />
                 {visibleUserSeries.map((series) => (
                   <Line
