@@ -45,6 +45,10 @@
     "4173": {
       "label": "Vite Preview",
       "onAutoForward": "notify"
+    },
+    "3001": {
+      "label": "Fake API Server",
+      "onAutoForward": "notify"
     }
   },
 

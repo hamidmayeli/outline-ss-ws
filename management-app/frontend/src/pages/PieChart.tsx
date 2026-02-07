@@ -22,12 +22,16 @@ export const PieChart: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const { token, logout } = useAuth();
 
-  const loadClients = useCallback(async () => {
+  const loadClients = useCallback(async (isRefresh = false) => {
     if (!token) return;
     
     try {
+      if (isRefresh) {
+        setRefreshing(true);
+      }
       setError('');
       const data = await api.getClients(token);
       
@@ -62,12 +66,17 @@ export const PieChart: React.FC = () => {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [token, logout]);
 
   useEffect(() => {
     loadClients();
   }, [loadClients]);
+
+  const handleRefresh = () => {
+    loadClients(true);
+  };
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartData }> }) => {
     if (active && payload && payload.length) {
@@ -95,8 +104,18 @@ export const PieChart: React.FC = () => {
   return (
     <div className="piechart-container">
       <div className="piechart-header">
-        <h1>Client Usage Distribution</h1>
-        <p className="piechart-subtitle">Data usage by client (last 30 days)</p>
+        <div>
+          <h1>Client Usage Distribution</h1>
+          <p className="piechart-subtitle">Data usage by client (last 30 days)</p>
+        </div>
+        <button 
+          onClick={handleRefresh} 
+          disabled={loading || refreshing}
+          className="refresh-button"
+          title="Refresh data"
+        >
+          {refreshing ? '↻' : '⟳'}
+        </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
