@@ -18,6 +18,12 @@ sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/hamidmayeli/outline-
   _ -d sample.com -e admin@sample.com
 ```
 
+To use the stable management app image tag, add `--stable`:
+```sh
+sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/hamidmayeli/outline-ss-ws/refs/heads/main/install.sh)" \
+  _ -d sample.com -e admin@sample.com --stable
+```
+
 The installer downloads [deployables/docker-compose.yaml](deployables/docker-compose.yaml) and provisions everything end-to-end.
 
 ## What features does it have

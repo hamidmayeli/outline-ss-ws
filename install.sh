@@ -21,29 +21,49 @@ print_step() { echo -e "${BLUE}[→]${NC} $1"; }
 # Default values
 INSTALL_DIR="/opt/outline-manager"
 REPO_URL="https://raw.githubusercontent.com/hamidmayeli/outline-ss-ws/main"
+MGMT_APP_TAG="latest"
 
 # Parse command line arguments
 show_usage() {
-    echo "Usage: $0 -d <domain> -e <email> [-i <install_dir>]"
+    echo "Usage: $0 -d <domain> -e <email> [-i <install_dir>] [--stable]"
     echo ""
     echo "Options:"
     echo "  -d    Domain name (required, e.g., example.com)"
     echo "  -e    Email for SSL certificate (required)"
     echo "  -i    Installation directory (optional, default: /opt/outline-manager)"
+    echo "  --stable  Use the stable management app image tag"
     echo "  -h    Show this help message"
     echo ""
     echo "Example:"
-    echo "  $0 -d example.com -e admin@example.com -i /opt/outline"
+    echo "  $0 -d example.com -e admin@example.com -i /opt/outline --stable"
     exit 1
 }
 
-while getopts "d:e:i:h" opt; do
-    case $opt in
-        d) DOMAIN="$OPTARG" ;;
-        e) EMAIL="$OPTARG" ;;
-        i) INSTALL_DIR="$OPTARG" ;;
-        h) show_usage ;;
-        \?) print_error "Invalid option: -$OPTARG"; show_usage ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -d)
+            DOMAIN="$2"
+            shift 2
+            ;;
+        -e)
+            EMAIL="$2"
+            shift 2
+            ;;
+        -i)
+            INSTALL_DIR="$2"
+            shift 2
+            ;;
+        --stable)
+            MGMT_APP_TAG="stable"
+            shift
+            ;;
+        -h|--help)
+            show_usage
+            ;;
+        *)
+            print_error "Invalid option: $1"
+            show_usage
+            ;;
     esac
 done
 
@@ -255,8 +275,17 @@ download_docker_compose() {
         print_info "Creating default docker-compose.yaml..."
         create_default_docker_compose
     fi
+
+    update_management_app_image
     
     print_success "Docker-compose configuration downloaded"
+}
+
+# Update management app image tag in docker-compose
+update_management_app_image() {
+    if [[ -f "$INSTALL_DIR/docker-compose.yaml" ]]; then
+        sed -i "s|hamidmayeli/outline-manager:[^[:space:]]*|hamidmayeli/outline-manager:$MGMT_APP_TAG|" "$INSTALL_DIR/docker-compose.yaml"
+    fi
 }
 
 # Create default docker-compose if download fails
@@ -272,7 +301,7 @@ services:
             - ./prometheus:/var/lib/prometheus
 
   management-app:
-    image: hamidmayeli/outline-manager:latest
+    image: hamidmayeli/outline-manager:$MGMT_APP_TAG
     container_name: management-app
     restart: unless-stopped
     environment:
