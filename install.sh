@@ -449,7 +449,7 @@ server {
 
     # Management API
     location /api/ {
-        proxy_pass http://management-app:8080/api/;
+        proxy_pass http://management-app/api/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -459,7 +459,7 @@ server {
 
     # Frontend
     location / {
-        proxy_pass http://management-app:8080/;
+        proxy_pass http://management-app/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
