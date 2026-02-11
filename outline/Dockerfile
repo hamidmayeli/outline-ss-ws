@@ -48,7 +48,7 @@ EXPOSE 9090 9091 9092
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD pgrep -x outline-ss-server || exit 1
+    CMD curl -fsS http://localhost:9091/metrics >/dev/null || exit 1
 
 # Set working directory
 WORKDIR /etc/outline

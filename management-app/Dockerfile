@@ -52,6 +52,10 @@ RUN pnpm run build
 
 FROM ubuntu AS final
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY --from=publish /app/publish .
 COPY --from=build-client /app/dist ./wwwroot
@@ -67,5 +71,8 @@ EXPOSE 443
 # Set the environment variable for the certificate
 # ENV ASPNETCORE_Kestrel__Certificates__Default__Password=password
 # ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=5s \
+    CMD curl -fsS http://localhost/ >/dev/null || exit 1
 
 ENTRYPOINT ["./API"]

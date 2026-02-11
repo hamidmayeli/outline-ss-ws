@@ -296,6 +296,12 @@ services:
     image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9091/metrics >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     volumes:
       - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
             - ./prometheus:/var/lib/prometheus
@@ -304,15 +310,21 @@ services:
     image: hamidmayeli/outline-manager:$MGMT_APP_TAG
     container_name: management-app
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_URLS=http://+:80
       - Jwt__SecretKey=${JWT_SECRET}
       - AppSettings__Domain=\${DOMAIN}
       - AppSettings__TcpPath=\${TCP_PATH}
       - AppSettings__UdpPath=\${UDP_PATH}
       - AppSettings__OutlineConfigPath=/etc/outline/config.yaml
-    - AppSettings__PrometheusUrl=http://outline-server:9092
+      - AppSettings__PrometheusUrl=http://outline-server:9092
       - DataDirectory=/app/data
     volumes:
       - ./data:/app/data
@@ -330,8 +342,10 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
-      - outline-server
-      - management-app
+      outline-server:
+        condition: service_healthy
+      management-app:
+        condition: service_healthy
 EOF
 }
 
