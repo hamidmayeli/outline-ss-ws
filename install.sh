@@ -296,6 +296,8 @@ services:
     image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
     restart: unless-stopped
+    labels:
+      - "autoheal=true"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9091/metrics >/dev/null || exit 1"]
       interval: 30s
@@ -310,6 +312,8 @@ services:
     image: hamidmayeli/outline-manager:$MGMT_APP_TAG
     container_name: management-app
     restart: unless-stopped
+    labels:
+      - "autoheal=true"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:80/ >/dev/null || exit 1"]
       interval: 30s
@@ -346,6 +350,16 @@ services:
         condition: service_healthy
       management-app:
         condition: service_healthy
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    restart: unless-stopped
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 EOF
 }
 
