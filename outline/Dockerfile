@@ -11,6 +11,7 @@ RUN apt-get update && \
     curl \
     wget \
     tar \
+    procps \
     prometheus && \
     rm -rf /var/lib/apt/lists/*
 

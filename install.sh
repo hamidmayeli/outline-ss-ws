@@ -533,7 +533,11 @@ echo "Config watcher started, monitoring: \$CONFIG_FILE"
 
 send_reload() {
     local pid
-    pid=$(docker exec "\$CONTAINER_NAME" sh -c 'for p in /proc/[0-9]*; do name=$(cat "$p/comm" 2>/dev/null || true); if [ "$name" = "outline-ss-server" ]; then echo "${p##*/}"; break; fi; done')
+    pid=$(docker exec "\$CONTAINER_NAME" sh -c 'ps -eo pid,comm | awk "$2==\"outline-ss-server\" {print $1; exit}"')
+
+    if [[ -z "\$pid" ]]; then
+        pid=$(docker exec "\$CONTAINER_NAME" sh -c 'for p in /proc/[0-9]*; do name=$(cat "$p/comm" 2>/dev/null || true); if [ "$name" = "outline-ss-server" ]; then echo "${p##*/}"; break; fi; done')
+    fi
 
     if [[ -z "\$pid" ]]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to find outline-ss-server PID"
@@ -550,7 +554,7 @@ send_reload() {
 }
 
 # Monitor for file modifications
-inotifywait -m -e modify,close_write "\$CONFIG_FILE" |
+inotifywait -m -e modify,close_write,move,create,attrib "\$CONFIG_FILE" |
 while read -r directory events filename; do
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Config file changed, reloading Outline server..."
     send_reload
