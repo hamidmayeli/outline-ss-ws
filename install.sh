@@ -22,20 +22,23 @@ print_step() { echo -e "${BLUE}[→]${NC} $1"; }
 INSTALL_DIR="/opt/outline-manager"
 REPO_URL="https://raw.githubusercontent.com/hamidmayeli/outline-ss-ws/main"
 MGMT_APP_TAG="latest"
+START_STEP=1
 
 # Parse command line arguments
 show_usage() {
-    echo "Usage: $0 -d <domain> -e <email> [-i <install_dir>] [--stable]"
+    echo "Usage: $0 -d <domain> -e <email> [-i <install_dir>] [--stable] [--continue <step>]"
     echo ""
     echo "Options:"
     echo "  -d    Domain name (required, e.g., example.com)"
     echo "  -e    Email for SSL certificate (required)"
     echo "  -i    Installation directory (optional, default: /opt/outline-manager)"
     echo "  --stable  Use the stable management app image tag"
+    echo "  --continue <step>  Start from step number (1-10)"
     echo "  -h    Show this help message"
     echo ""
     echo "Example:"
     echo "  $0 -d example.com -e admin@example.com -i /opt/outline --stable"
+    echo "  $0 -d example.com -e admin@example.com --continue 5"
     exit 1
 }
 
@@ -57,6 +60,10 @@ while [[ $# -gt 0 ]]; do
             MGMT_APP_TAG="stable"
             shift
             ;;
+        --continue)
+            START_STEP="$2"
+            shift 2
+            ;;
         -h|--help)
             show_usage
             ;;
@@ -66,6 +73,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if ! [[ "$START_STEP" =~ ^[0-9]+$ ]] || [[ "$START_STEP" -lt 1 || "$START_STEP" -gt 10 ]]; then
+    print_error "Invalid --continue value: $START_STEP (expected 1-10)"
+    exit 1
+fi
 
 # Validate required parameters
 if [[ -z "$DOMAIN" ]] || [[ -z "$EMAIL" ]]; then
@@ -164,7 +176,8 @@ install_prerequisites() {
         ufw \
         ca-certificates \
         gnupg \
-        lsb-release
+        lsb-release \
+        dnsutils
     
     # Install Docker from official repository
     print_info "Installing Docker from official repository..."
@@ -651,17 +664,17 @@ main() {
     echo ""
     
     # Execute installation steps
-    verify_domain
-    install_prerequisites
-    configure_firewall
-    obtain_ssl_certificate
-    setup_install_directory
-    download_docker_compose
-    generate_configurations
-    start_services
-    setup_config_watcher
-    setup_cron_jobs
-    display_summary
+    (( START_STEP <= 1 )) && install_prerequisites #1
+    (( START_STEP <= 2 )) && verify_domain #2
+    (( START_STEP <= 3 )) && configure_firewall #3
+    (( START_STEP <= 4 )) && obtain_ssl_certificate #4
+    (( START_STEP <= 5 )) && setup_install_directory #5
+    (( START_STEP <= 6 )) && download_docker_compose #6
+    (( START_STEP <= 7 )) && generate_configurations #7
+    (( START_STEP <= 8 )) && start_services #8
+    (( START_STEP <= 9 )) && setup_config_watcher #9
+    (( START_STEP <= 10 )) && setup_cron_jobs #10
+    display_summary #11
 }
 
 # Run main function
