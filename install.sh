@@ -528,35 +528,45 @@ setup_config_watcher() {
 
 CONFIG_FILE="$INSTALL_DIR/outline/config/config.yaml"
 CONTAINER_NAME="outline-server"
+LOG_FILE="$INSTALL_DIR/config-watcher.log"
+DOCKER_BIN=\$(command -v docker 2>/dev/null || echo /usr/bin/docker)
+INOTIFY_BIN=\$(command -v inotifywait 2>/dev/null || echo /usr/bin/inotifywait)
+
+exec >> "\$LOG_FILE" 2>&1
 
 echo "Config watcher started, monitoring: \$CONFIG_FILE"
 
 send_reload() {
     local pid
-    pid=$(docker exec "\$CONTAINER_NAME" sh -c 'ps -eo pid,comm | awk "$2==\"outline-ss-server\" {print $1; exit}"')
-
-    if [[ -z "\$pid" ]]; then
-        pid=$(docker exec "\$CONTAINER_NAME" sh -c 'for p in /proc/[0-9]*; do name=$(cat "$p/comm" 2>/dev/null || true); if [ "$name" = "outline-ss-server" ]; then echo "${p##*/}"; break; fi; done')
-    fi
-
-    if [[ -z "\$pid" ]]; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to find outline-ss-server PID"
+    if [[ ! -x "\$DOCKER_BIN" ]]; then
+        echo "\$(date '+%Y-%m-%d %H:%M:%S') - docker binary not found: \$DOCKER_BIN"
         return 1
     fi
 
-    if docker exec "\$CONTAINER_NAME" sh -c "kill -HUP \$pid" 2>/dev/null; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - Reload signal sent to outline-ss-server (PID \$pid)"
+    pid=\$("\$DOCKER_BIN" exec "\$CONTAINER_NAME" sh -c 'pgrep -f "outline-ss-server" | grep -v "^1$" | head -n1')
+
+    if [[ -z "\$pid" ]]; then
+        pid=\$("\$DOCKER_BIN" exec "\$CONTAINER_NAME" sh -c 'for p in /proc/[0-9]*; do name=\$(cat "$p/comm" 2>/dev/null || true); if [ "$name" = "outline-ss-server" ] && [ "${p##*/}" != "1" ]; then echo "${p##*/}"; break; fi; done')
+    fi
+
+    if [[ -z "\$pid" ]]; then
+        echo "\$(date '+%Y-%m-%d %H:%M:%S') - Failed to find outline-ss-server PID"
+        return 1
+    fi
+
+    if "\$DOCKER_BIN" exec "\$CONTAINER_NAME" sh -c "kill -HUP \$pid" 2>/dev/null; then
+        echo "\$(date '+%Y-%m-%d %H:%M:%S') - Reload signal sent to outline-ss-server (PID \$pid)"
         return 0
     fi
 
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to send reload signal to outline-ss-server"
+    echo "\$(date '+%Y-%m-%d %H:%M:%S') - Failed to send reload signal to outline-ss-server"
     return 1
 }
 
 # Monitor for file modifications
-inotifywait -m -e modify,close_write,move,create,attrib "\$CONFIG_FILE" |
+"\$INOTIFY_BIN" -m -e modify,close_write,move,create,attrib "\$CONFIG_FILE" |
 while read -r directory events filename; do
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Config file changed, reloading Outline server..."
+    echo "\$(date '+%Y-%m-%d %H:%M:%S') - Config file changed, reloading Outline server..."
     send_reload
 done
 WATCHER_EOF

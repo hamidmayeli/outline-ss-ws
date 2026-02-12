@@ -37,8 +37,10 @@ services:
       - AppSettings__OutlineConfigPath=/etc/outline/config.yaml
       - AppSettings__PrometheusUrl=http://outline-server:9092
       - DataDirectory=/app/data
-      - Logging__LogLevel__Default=Trace
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__OutlineManager.API=Trace
       - Logging__LogLevel__Microsoft.AspNetCore=Warning
+      - Logging__LogLevel__System.Net.Http.HttpClient.IMetricsService=Warning
     volumes:
       - ./data:/app/data
       - ./outline/config/config.yaml:/etc/outline/config.yaml
