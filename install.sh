@@ -523,25 +523,37 @@ setup_config_watcher() {
     fi
     
     # Create watcher script
-    cat > "$INSTALL_DIR/config-watcher.sh" <<'WATCHER_EOF'
+    cat > "$INSTALL_DIR/config-watcher.sh" <<WATCHER_EOF
 #!/bin/bash
 
-CONFIG_FILE="/opt/outline-manager/outline/config/config.yaml"
+CONFIG_FILE="$INSTALL_DIR/outline/config/config.yaml"
 CONTAINER_NAME="outline-server"
 
-echo "Config watcher started, monitoring: $CONFIG_FILE"
+echo "Config watcher started, monitoring: \$CONFIG_FILE"
+
+send_reload() {
+    local pid
+    pid=$(docker exec "\$CONTAINER_NAME" sh -c 'for p in /proc/[0-9]*; do name=$(cat "$p/comm" 2>/dev/null || true); if [ "$name" = "outline-ss-server" ]; then echo "${p##*/}"; break; fi; done')
+
+    if [[ -z "\$pid" ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to find outline-ss-server PID"
+        return 1
+    fi
+
+    if docker exec "\$CONTAINER_NAME" sh -c "kill -HUP \$pid" 2>/dev/null; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Reload signal sent to outline-ss-server (PID \$pid)"
+        return 0
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to send reload signal to outline-ss-server"
+    return 1
+}
 
 # Monitor for file modifications
-inotifywait -m -e modify,close_write "$CONFIG_FILE" |
+inotifywait -m -e modify,close_write "\$CONFIG_FILE" |
 while read -r directory events filename; do
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Config file changed, reloading Outline server..."
-    
-    # Send SIGHUP signal to outline-server container
-    if docker kill --signal=SIGHUP "$CONTAINER_NAME" 2>/dev/null; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - Reload signal sent successfully"
-    else
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - Failed to send reload signal"
-    fi
+    send_reload
 done
 WATCHER_EOF
     
@@ -600,7 +612,7 @@ EOF
         print_info "Creating default cert renewal script..."
         cat > "$INSTALL_DIR/renew-cert.sh" <<'EOF'
 #!/bin/bash
-certbot renew --quiet --post-hook "docker compose -f /opt/outline-manager/docker-compose.yaml restart nginx"
+certbot renew --quiet --post-hook "docker compose -f $INSTALL_DIR/docker-compose.yaml restart nginx"
 EOF
         chmod +x "$INSTALL_DIR/renew-cert.sh"
     fi
