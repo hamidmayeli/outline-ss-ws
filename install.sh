@@ -268,7 +268,7 @@ setup_install_directory() {
     cd "$INSTALL_DIR"
     
     # Create directory structure
-    mkdir -p nginx/conf.d
+    mkdir -p nginx/templates
     mkdir -p outline/config
     mkdir -p data
     mkdir -p prometheus
@@ -276,22 +276,26 @@ setup_install_directory() {
     print_success "Installation directory prepared"
 }
 
-# Download docker-compose configuration
-download_docker_compose() {
-    print_step "Downloading docker-compose configuration..."
+# Download deployable configs (docker-compose and nginx template)
+download_deployables() {
+    print_step "Downloading deployable configuration files..."
     
     cd "$INSTALL_DIR"
     
     # Download docker-compose.yaml
     if ! wget -q "$REPO_URL/deployables/docker-compose.yaml" -O docker-compose.yaml; then
         print_error "Failed to download docker-compose.yaml"
-        print_info "Creating default docker-compose.yaml..."
-        create_default_docker_compose
+        exit 1
+    fi
+
+    if ! wget -q "$REPO_URL/deployables/nginx/templates/default.conf.template" -O nginx/templates/default.conf.template; then
+        print_error "Failed to download nginx.conf template"
+        exit 1
     fi
 
     update_management_app_image
     
-    print_success "Docker-compose configuration downloaded"
+    print_success "Deployable configuration files downloaded"
 }
 
 # Update management app image tag in docker-compose
@@ -301,93 +305,56 @@ update_management_app_image() {
     fi
 }
 
-# Create default docker-compose if download fails
-create_default_docker_compose() {
-    cat > docker-compose.yaml <<EOF
-services:
-  outline-server:
-    image: hamidmayeli/outline-over-ws:latest
-    container_name: outline-server
-    restart: unless-stopped
-    labels:
-      - "autoheal=true"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9091/metrics >/dev/null || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    volumes:
-      - ./outline/config/config.yaml:/etc/outline/config.yaml:ro
-            - ./prometheus:/var/lib/prometheus
 
-  management-app:
-    image: hamidmayeli/outline-manager:$MGMT_APP_TAG
-    container_name: management-app
-    restart: unless-stopped
-    labels:
-      - "autoheal=true"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:80/ >/dev/null || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:80
-      - Jwt__SecretKey=${JWT_SECRET}
-      - AppSettings__Domain=\${DOMAIN}
-      - AppSettings__TcpPath=\${TCP_PATH}
-      - AppSettings__UdpPath=\${UDP_PATH}
-      - AppSettings__OutlineConfigPath=/etc/outline/config.yaml
-      - AppSettings__PrometheusUrl=http://outline-server:9092
-      - DataDirectory=/app/data
-    volumes:
-      - ./data:/app/data
-      - ./outline/config/config.yaml:/etc/outline/config.yaml
-
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-            - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    depends_on:
-      outline-server:
-        condition: service_healthy
-      management-app:
-        condition: service_healthy
-
-  autoheal:
-    image: willfarrell/autoheal:latest
-    container_name: autoheal
-    restart: unless-stopped
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=autoheal
-      - AUTOHEAL_INTERVAL=10
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-EOF
+read_env_value() {
+    local key="$1"
+    if [[ -f "$INSTALL_DIR/.env" ]]; then
+        grep -E "^${key}=" "$INSTALL_DIR/.env" | tail -n1 | cut -d= -f2- || true
+    fi
 }
 
-# Generate configuration files
-generate_configurations() {
-    print_step "Generating configuration files..."
-    
-    # Generate random secrets
-    OUTLINE_SECRET=$(openssl rand -hex 16)
-    JWT_SECRET=$(openssl rand -hex 32)
-    TCP_PATH="/$(openssl rand -hex 12)"
-    UDP_PATH="/$(openssl rand -hex 12)"
-    
-    # Create outline config
-    cat > "$INSTALL_DIR/outline/config/config.yaml" <<EOF
+read_outline_secret() {
+    if [[ -f "$INSTALL_DIR/outline/config/config.yaml" ]]; then
+        grep -E "^\s*secret:" "$INSTALL_DIR/outline/config/config.yaml" | tail -n1 | awk '{print $2}' || true
+    fi
+}
+
+read_outline_paths() {
+    if [[ -f "$INSTALL_DIR/outline/config/config.yaml" ]]; then
+        grep -E "^\s*path:" "$INSTALL_DIR/outline/config/config.yaml" | awk '{print $2}' | tr -d '"' || true
+    fi
+}
+
+# Generate runtime configuration files
+generate_runtime_config() {
+    print_step "Generating runtime configuration files..."
+
+    local config_path="$INSTALL_DIR/outline/config/config.yaml"
+    local env_path="$INSTALL_DIR/.env"
+    local write_config=0
+
+    JWT_SECRET=$(read_env_value "JWT_SECRET")
+    TCP_PATH=$(read_env_value "TCP_PATH")
+    UDP_PATH=$(read_env_value "UDP_PATH")
+    OUTLINE_SECRET=$(read_outline_secret)
+
+    if [[ -z "$TCP_PATH" || -z "$UDP_PATH" ]]; then
+        mapfile -t existing_paths < <(read_outline_paths)
+        TCP_PATH=${TCP_PATH:-${existing_paths[0]}}
+        UDP_PATH=${UDP_PATH:-${existing_paths[1]}}
+    fi
+
+    OUTLINE_SECRET=${OUTLINE_SECRET:-$(openssl rand -hex 16)}
+    JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
+    TCP_PATH=${TCP_PATH:-"/$(openssl rand -hex 12)"}
+    UDP_PATH=${UDP_PATH:-"/$(openssl rand -hex 12)"}
+
+    if [[ ! -f "$config_path" ]]; then
+        write_config=1
+    fi
+
+    if [[ "$write_config" -eq 1 ]]; then
+        cat > "$config_path" <<EOF
 web:
   servers:
     - id: ws-server
@@ -407,94 +374,20 @@ services:
         cipher: chacha20-ietf-poly1305
         secret: $OUTLINE_SECRET
 EOF
+        else
+                print_info "Existing outline config found; keeping current values"
+        fi
     
     # Create .env file for docker-compose
-    cat > "$INSTALL_DIR/.env" <<EOF
+    cat > "$env_path" <<EOF
 DOMAIN=$DOMAIN
 JWT_SECRET=$JWT_SECRET
 TCP_PATH=$TCP_PATH
 UDP_PATH=$UDP_PATH
 EOF
     
-    # Create Nginx configuration
-    cat > "$INSTALL_DIR/nginx/conf.d/default.conf" <<EOF
-# Redirect HTTP to HTTPS
-server {
-    listen 80;
-    server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
-
-# HTTPS Server
-server {
-    listen 443 ssl;
-    http2 on;
-    server_name $DOMAIN;
-
-    # Re-resolve Docker DNS to avoid stale container IPs
-    resolver 127.0.0.11 valid=10s ipv6=off;
-    resolver_timeout 5s;
-
-    set \$outline_upstream http://outline-server:9090;
-    set \$management_upstream http://management-app;
-
-    # SSL Configuration
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-
-    # WebSocket paths to outline-server
-    location $TCP_PATH {
-        proxy_pass \$outline_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_read_timeout 86400;
-    }
-
-    location $UDP_PATH {
-        proxy_pass \$outline_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_read_timeout 86400;
-    }
-
-    # Management API
-    location /api/ {
-        proxy_pass \$management_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-
-    # Frontend
-    location / {
-        proxy_pass \$management_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-
-    # Logging
-    access_log /var/log/nginx/outline_access.log;
-    error_log /var/log/nginx/outline_error.log;
-}
-EOF
     
-    print_success "Configuration files generated"
+    print_success "Runtime configuration files generated"
     print_info "Secrets saved:"
     echo "  Outline Secret: $OUTLINE_SECRET"
     echo "  TCP Path: $TCP_PATH"
@@ -522,6 +415,15 @@ start_services() {
 # Setup config file watcher
 setup_config_watcher() {
     print_step "Setting up config file watcher..."
+
+    # Clean existing watcher artifacts
+    if systemctl list-unit-files | grep -q "^outline-config-watcher.service"; then
+        sudo systemctl stop outline-config-watcher.service 2>/dev/null || true
+        sudo systemctl disable outline-config-watcher.service 2>/dev/null || true
+    fi
+    sudo rm -f /etc/systemd/system/outline-config-watcher.service
+    sudo rm -f "$INSTALL_DIR/config-watcher.sh" "$INSTALL_DIR/config-watcher.log"
+    sudo systemctl daemon-reload
     
     # Install inotify-tools if not present
     if ! command -v inotifywait &> /dev/null; then
@@ -676,7 +578,7 @@ display_summary() {
     echo ""
     print_info "Configuration files:"
     echo "  Outline: $INSTALL_DIR/outline/config/config.yaml"
-    echo "  Nginx: $INSTALL_DIR/nginx/conf.d/default.conf"
+    echo "  Nginx: $INSTALL_DIR/nginx/templates/default.conf.template"
     echo "  Environment: $INSTALL_DIR/.env"
     echo ""
     print_success "Installation complete!"
@@ -703,8 +605,8 @@ main() {
     (( START_STEP <= 3 )) && configure_firewall #3
     (( START_STEP <= 4 )) && obtain_ssl_certificate #4
     (( START_STEP <= 5 )) && setup_install_directory #5
-    (( START_STEP <= 6 )) && download_docker_compose #6
-    (( START_STEP <= 7 )) && generate_configurations #7
+    (( START_STEP <= 6 )) && download_deployables #6
+    (( START_STEP <= 7 )) && generate_runtime_config #7
     (( START_STEP <= 8 )) && start_services #8
     (( START_STEP <= 9 )) && setup_config_watcher #9
     (( START_STEP <= 10 )) && setup_cron_jobs #10

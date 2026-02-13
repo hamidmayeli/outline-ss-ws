@@ -49,12 +49,16 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     restart: unless-stopped
+    environment:
+      - DOMAIN=${DOMAIN}
+      - TCP_PATH=${TCP_PATH}
+      - UDP_PATH=${UDP_PATH}
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       outline-server:
