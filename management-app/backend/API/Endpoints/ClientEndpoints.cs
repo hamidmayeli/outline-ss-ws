@@ -94,6 +94,7 @@ public static class ClientEndpoints
         string id,
         UpdateClientRequest request,
         IClientRepository clientRepository,
+        IOutlineSyncService outlineSyncService,
         IMetricsService metricsService,
         ILogger<Program> logger)
     {
@@ -114,8 +115,18 @@ public static class ClientEndpoints
 
         existingClient.Limit = request.Limit;
 
+        var usage = await metricsService.GetClientUsageLast30DaysAsync(existingClient.Id);
+        var oldIsActive = existingClient.IsActive;
+        existingClient.IsActive = usage.TotalBytesTransferred < existingClient.Limit;
+
         var updatedClient = await clientRepository.UpdateAsync(id, existingClient);
-        
+
+        if (existingClient.IsActive != oldIsActive)
+        {
+            var allClients = await clientRepository.GetAllAsync();
+            await outlineSyncService.SyncClientsToOutlineAsync(allClients);
+        }
+
         if (updatedClient == null)
             return TypedResults.NotFound();
 
