@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { TimeZoneProvider } from './contexts/TimeZoneContext';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
@@ -19,45 +20,47 @@ const App: React.FC = () => {
       <TimeZoneProvider>
         <AuthProvider>
           <BrowserRouter>
-            <Layout>
-              <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/clients"
-                element={
-                  <ProtectedRoute>
-                    <Clients />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports/piechart"
-                element={
-                  <ProtectedRoute>
-                    <PieChart />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports/hourly"
-                element={
-                  <ProtectedRoute>
-                    <HourlyLineChart />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports/weekly"
-                element={
-                  <ProtectedRoute>
-                    <WeeklyComparisonChart />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/" element={<Navigate to="/clients" replace />} />
-              <Route path="*" element={<Navigate to="/clients" replace />} />
-              </Routes>
-            </Layout>
+            <ConfirmProvider>
+              <Layout>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/clients"
+                    element={
+                      <ProtectedRoute>
+                        <Clients />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports/piechart"
+                    element={
+                      <ProtectedRoute>
+                        <PieChart />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports/hourly"
+                    element={
+                      <ProtectedRoute>
+                        <HourlyLineChart />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports/weekly"
+                    element={
+                      <ProtectedRoute>
+                        <WeeklyComparisonChart />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/" element={<Navigate to="/clients" replace />} />
+                  <Route path="*" element={<Navigate to="/clients" replace />} />
+                </Routes>
+              </Layout>
+            </ConfirmProvider>
             <UpdateNotification />
           </BrowserRouter>
         </AuthProvider>

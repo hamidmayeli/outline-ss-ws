@@ -4,6 +4,7 @@ import { api, ApiError } from '../services/api';
 import type { Client } from '../services/api';
 import { ClientModal } from '../components/ClientModal';
 import { ClientConfigModal } from '../components/ClientConfigModal';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { formatBytes } from '../utils/formatBytes';
 import './Clients.css';
 
@@ -22,6 +23,7 @@ export const Clients: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const { token, logout } = useAuth();
+  const confirm = useConfirm();
 
   const loadClients = useCallback(async () => {
     if (!token) return;
@@ -61,12 +63,20 @@ export const Clients: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (client: Client) => {
     if (!token) return;
-    if (!confirm('Are you sure you want to delete this client?')) return;
+
+    const approved = await confirm({
+      title: 'Delete client',
+      message: `Are you sure you want to delete ${client.name}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!approved) return;
 
     try {
-      await api.deleteClient(token, id);
+      await api.deleteClient(token, client.id);
       await loadClients();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -238,7 +248,7 @@ export const Clients: React.FC = () => {
                     </button>
                     <button
                       className="btn-action btn-delete"
-                      onClick={() => handleDelete(client.id)}
+                      onClick={() => handleDelete(client)}
                       title="Delete"
                     >
                       🗑️
@@ -264,6 +274,7 @@ export const Clients: React.FC = () => {
           onClose={() => setShowConfigModal(false)}
         />
       )}
+
     </div>
   );
 };
