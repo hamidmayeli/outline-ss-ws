@@ -356,7 +356,7 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+            - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       outline-server:
@@ -427,8 +427,16 @@ server {
 
 # HTTPS Server
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name $DOMAIN;
+
+    # Re-resolve Docker DNS to avoid stale container IPs
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s;
+
+    set \$outline_upstream http://outline-server:9090;
+    set \$management_upstream http://management-app;
 
     # SSL Configuration
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
@@ -439,7 +447,7 @@ server {
 
     # WebSocket paths to outline-server
     location $TCP_PATH {
-        proxy_pass http://outline-server:9090;
+        proxy_pass \$outline_upstream;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -450,7 +458,7 @@ server {
     }
 
     location $UDP_PATH {
-        proxy_pass http://outline-server:9090;
+        proxy_pass \$outline_upstream;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -462,7 +470,7 @@ server {
 
     # Management API
     location /api/ {
-        proxy_pass http://management-app/api/;
+        proxy_pass \$management_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -472,7 +480,7 @@ server {
 
     # Frontend
     location / {
-        proxy_pass http://management-app/;
+        proxy_pass \$management_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
