@@ -117,7 +117,7 @@ public static class ClientEndpoints
 
         var usage = await metricsService.GetClientUsageLast30DaysAsync(existingClient.Id);
         var oldIsActive = existingClient.IsActive;
-        existingClient.IsActive = usage.TotalBytesTransferred < existingClient.Limit;
+        existingClient.IsActive = existingClient.Limit == null || usage.TotalBytesTransferred < existingClient.Limit;
 
         var updatedClient = await clientRepository.UpdateAsync(id, existingClient);
 

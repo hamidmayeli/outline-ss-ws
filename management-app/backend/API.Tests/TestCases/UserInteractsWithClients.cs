@@ -304,6 +304,56 @@ public class UserInteractsWithClients : TestCaseBase
     }
 
     [Fact]
+    public async Task When_UpdateClient_WithNullLimit_AfterBeingOverLimit_ReturnsActiveClient()
+    {
+        var clientId = Guid.NewGuid().ToString();
+        await _fixture.SetClient([new Client
+        {
+            Id = clientId,
+            Name = "CappedClient",
+            Secret = "secret",
+            IsActive = false,
+            Limit = 200,
+            AccessKeyId = 1
+        }]);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                now,
+                150
+            ),
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                now,
+                130
+            )
+        );
+
+        _fixture.SetupPrometheusInstantResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
+
+        var request = new UpdateClientRequest
+        {
+            Name = "CappedClient",
+            Limit = null
+        };
+
+        var client = _fixture.GetAuthenticatedClient();
+        var response = await client.PutAsJsonAsync($"/api/v1/clients/{clientId}", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var clientResponse = await response.Content.ReadFromJsonAsync<ClientResponse>();
+        Assert.NotNull(clientResponse);
+        Assert.Null(clientResponse.Limit);
+        Assert.True(clientResponse.IsActive);
+    }
+
+    [Fact]
     public async Task When_UpdateClient_WithNonExistingClient_ReturnsNotFound()
     {
         var clientId = Guid.NewGuid().ToString();
