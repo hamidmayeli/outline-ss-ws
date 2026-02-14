@@ -1,5 +1,6 @@
 using OutlineManager.API.DTOs;
 using OutlineManager.API.Models;
+using OutlineManager.API.Tests.TestHelpers;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -202,6 +203,154 @@ public class UserInteractsWithClients : TestCaseBase
         Assert.Equal(clientId, clientResponse.Id);
         Assert.Equal("UpdatedName", clientResponse.Name);
         Assert.NotNull(clientResponse.UsageLast30Days);
+    }
+
+    [Fact]
+    public async Task When_UpdateClient_WithUsageAboveLimit_ReturnsInactiveClient()
+    {
+        var clientId = Guid.NewGuid().ToString();
+        await _fixture.SetClient([new Client
+        {
+            Id = clientId,
+            Name = "CappedClient",
+            Secret = "secret",
+            IsActive = true,
+            AccessKeyId = 1
+        }]);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                now,
+                120
+            ),
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                now,
+                100
+            )
+        );
+
+        _fixture.SetupPrometheusInstantResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
+
+        var request = new UpdateClientRequest
+        {
+            Name = "CappedClient",
+            Limit = 200
+        };
+
+        var client = _fixture.GetAuthenticatedClient();
+        var response = await client.PutAsJsonAsync($"/api/v1/clients/{clientId}", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var clientResponse = await response.Content.ReadFromJsonAsync<ClientResponse>();
+        Assert.NotNull(clientResponse);
+        Assert.Equal(200, clientResponse.Limit);
+        Assert.False(clientResponse.IsActive);
+    }
+
+    [Fact]
+    public async Task When_UpdateClient_WithUsageBelowLimit_ReturnsActiveClient()
+    {
+        var clientId = Guid.NewGuid().ToString();
+        await _fixture.SetClient([new Client
+        {
+            Id = clientId,
+            Name = "CappedClient",
+            Secret = "secret",
+            IsActive = false,
+            AccessKeyId = 1
+        }]);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                now,
+                90
+            ),
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                now,
+                90
+            )
+        );
+
+        _fixture.SetupPrometheusInstantResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
+
+        var request = new UpdateClientRequest
+        {
+            Name = "CappedClient",
+            Limit = 200
+        };
+
+        var client = _fixture.GetAuthenticatedClient();
+        var response = await client.PutAsJsonAsync($"/api/v1/clients/{clientId}", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var clientResponse = await response.Content.ReadFromJsonAsync<ClientResponse>();
+        Assert.NotNull(clientResponse);
+        Assert.Equal(200, clientResponse.Limit);
+        Assert.True(clientResponse.IsActive);
+    }
+
+    [Fact]
+    public async Task When_UpdateClient_WithNullLimit_AfterBeingOverLimit_ReturnsActiveClient()
+    {
+        var clientId = Guid.NewGuid().ToString();
+        await _fixture.SetClient([new Client
+        {
+            Id = clientId,
+            Name = "CappedClient",
+            Secret = "secret",
+            IsActive = false,
+            Limit = 200,
+            AccessKeyId = 1
+        }]);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var bytesResponse = PrometheusResponseBuilder.BuildInstant(
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c>p" } },
+                now,
+                150
+            ),
+            new PrometheusResponseBuilder.InstantSample(
+                new Dictionary<string, string> { { "access_key", "1" }, { "dir", "c<p" } },
+                now,
+                130
+            )
+        );
+
+        _fixture.SetupPrometheusInstantResponses(new Dictionary<string, string>
+        {
+            { "shadowsocks_data_bytes", bytesResponse }
+        });
+
+        var request = new UpdateClientRequest
+        {
+            Name = "CappedClient",
+            Limit = null
+        };
+
+        var client = _fixture.GetAuthenticatedClient();
+        var response = await client.PutAsJsonAsync($"/api/v1/clients/{clientId}", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var clientResponse = await response.Content.ReadFromJsonAsync<ClientResponse>();
+        Assert.NotNull(clientResponse);
+        Assert.Null(clientResponse.Limit);
+        Assert.True(clientResponse.IsActive);
     }
 
     [Fact]

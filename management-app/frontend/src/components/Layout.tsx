@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useConfirmDialog } from '../contexts/ConfirmContext';
+import { ConfirmModal } from './ConfirmModal';
 import './Layout.css';
 
 interface LayoutProps {
@@ -11,6 +13,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { dialog, handleConfirm, handleCancel } = useConfirmDialog();
   const navigate = useNavigate();
   const location = useLocation();
   const [showReportsDropdown, setShowReportsDropdown] = useState(false);
@@ -88,6 +91,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="main-content">
         {children}
       </main>
+      {dialog.isOpen && (
+        <ConfirmModal
+          title={dialog.options.title ?? 'Confirm'}
+          message={dialog.options.message}
+          confirmLabel={dialog.options.confirmLabel ?? 'Confirm'}
+          cancelLabel={dialog.options.cancelLabel ?? 'Cancel'}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
     </div>
   );
 };
