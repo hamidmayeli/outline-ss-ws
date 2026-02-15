@@ -58,6 +58,7 @@ builder.Services.AddAuthorization();
 
 // Register services
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
+builder.Services.AddSingleton<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddSingleton<IClientRepository, ClientRepository>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IOutlineSyncService, OutlineSyncService>();
