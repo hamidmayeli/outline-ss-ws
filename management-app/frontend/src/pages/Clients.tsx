@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { api, ApiError } from '../services/api';
+import { api } from '../services/api';
 import type { Client } from '../services/api';
 import { ClientModal } from '../components/ClientModal';
 import { ClientConfigModal } from '../components/ClientConfigModal';
@@ -22,26 +21,19 @@ export const Clients: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(`name`);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const { token, logout } = useAuth();
   const confirm = useConfirm();
 
   const loadClients = useCallback(async () => {
-    if (!token) return;
-    
     try {
       setError('');
       const data = await api.getClients();
       setClients(data);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-      } else {
-        setError('Failed to load clients');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to load clients');
     } finally {
       setLoading(false);
     }
-  }, [token, logout]);
+  }, []);
 
   useEffect(() => {
     loadClients();
@@ -64,8 +56,6 @@ export const Clients: React.FC = () => {
   };
 
   const handleDelete = async (client: Client) => {
-    if (!token) return;
-
     const approved = await confirm({
       title: 'Delete client',
       message: `Are you sure you want to delete ${client.name}? This action cannot be undone.`,
@@ -79,11 +69,7 @@ export const Clients: React.FC = () => {
       await api.deleteClient(client.id);
       await loadClients();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-      } else {
-        alert('Failed to delete client');
-      }
+      alert(err instanceof Error ? err.message : 'Failed to delete client');
     }
   };
 

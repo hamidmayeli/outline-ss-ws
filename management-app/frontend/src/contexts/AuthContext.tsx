@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { setAuthToken } from '../services/api';
+import { setAuthToken, setOnUnauthorized } from '../services/api';
 
 interface AuthContextType {
   token: string | null;
@@ -20,6 +20,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     setAuthToken(token);
   }, [token]);
+
+  useEffect(() => {
+    setOnUnauthorized(logout);
+  }, []);
 
   const login = (newToken: string) => {
     localStorage.setItem('token', newToken);

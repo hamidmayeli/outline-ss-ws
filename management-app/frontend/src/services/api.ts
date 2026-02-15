@@ -2,20 +2,19 @@ const API_BASE_URL = import.meta.env.VITE_API_HOST || '/api';
 
 // Store the auth token internally
 let authToken: string | null = null;
-
-// Initialize token from localStorage if available
-if (typeof window !== 'undefined' && window.localStorage) {
-  authToken = localStorage.getItem('token');
-}
+let onUnauthorized: (() => void) | null = null;
 
 // Function to set the auth token
 export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
-// Function to get the current auth token
-export function getAuthToken(): string | null {
-  return authToken;
+export function setOnUnauthorized(callback: (() => void) | null) {
+  onUnauthorized = callback;
+}
+
+function handleUnauthorized() {
+  onUnauthorized?.();
 }
 
 export interface LoginRequest {
@@ -93,6 +92,10 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
       ...(options.headers as Record<string, string> || {}),
     },
   });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

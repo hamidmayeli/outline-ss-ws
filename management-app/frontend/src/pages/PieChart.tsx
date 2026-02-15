@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PieChart as RechartsPieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts';
-import { useAuth } from '../contexts/AuthContext';
-import { api, ApiError } from '../services/api';
+import { api } from '../services/api';
 import { formatBytes } from '../utils/formatBytes';
 import './PieChart.css';
 
@@ -23,11 +22,8 @@ export const PieChart: React.FC = () => {
   const [error, setError] = useState('');
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const { token, logout } = useAuth();
 
   const loadClients = useCallback(async (isRefresh = false) => {
-    if (!token) return;
-    
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -59,16 +55,12 @@ export const PieChart: React.FC = () => {
 
       setChartData(chartData);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-      } else {
-        setError('Failed to load clients');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to load clients');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token, logout]);
+  }, []);
 
   useEffect(() => {
     loadClients();

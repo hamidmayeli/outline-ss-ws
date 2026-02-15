@@ -9,9 +9,8 @@ import {
   CartesianGrid,
   Brush,
 } from 'recharts';
-import { useAuth } from '../contexts/AuthContext';
 import { useTimeZone } from '../contexts/TimeZoneContext';
-import { api, ApiError } from '../services/api';
+import { api } from '../services/api';
 import { formatBytes } from '../utils/formatBytes';
 import './HourlyLineChart.css';
 
@@ -47,7 +46,6 @@ export const HourlyLineChart: React.FC = () => {
   const [perUserData, setPerUserData] = useState<PerUserPoint[]>([]);
   const [userSeries, setUserSeries] = useState<UserSeries[]>([]);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  const { token, logout } = useAuth();
   const { offsetMinutes, setOffsetMinutes, options } = useTimeZone();
   const offsetMs = offsetMinutes * 60 * 1000;
 
@@ -74,8 +72,6 @@ export const HourlyLineChart: React.FC = () => {
   }, [offsetMs]);
 
   const loadUsage = useCallback(async () => {
-    if (!token) return;
-
     try {
       setError('');
       const usage = await api.getHourlyUsage(hours);
@@ -115,15 +111,11 @@ export const HourlyLineChart: React.FC = () => {
       setPerUserData(perUserSeries);
       setUserSeries(series);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-      } else {
-        setError('Failed to load hourly usage');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to load hourly usage');
     } finally {
       setLoading(false);
     }
-  }, [token, logout, hours, formatTimeLabelTooltip]);
+  }, [hours, formatTimeLabelTooltip]);
 
   useEffect(() => {
     loadUsage();
