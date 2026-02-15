@@ -1,5 +1,23 @@
 const API_BASE_URL = import.meta.env.VITE_API_HOST || '/api';
 
+// Store the auth token internally
+let authToken: string | null = null;
+
+// Initialize token from localStorage if available
+if (typeof window !== 'undefined' && window.localStorage) {
+  authToken = localStorage.getItem('token');
+}
+
+// Function to set the auth token
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+// Function to get the current auth token
+export function getAuthToken(): string | null {
+  return authToken;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;
@@ -59,13 +77,13 @@ class ApiError extends Error {
   }
 }
 
-async function fetchWithAuth(url: string, token: string | null, options: RequestInit = {}) {
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
 
   const response = await fetch(url, {
@@ -90,38 +108,38 @@ async function fetchWithAuth(url: string, token: string | null, options: Request
 
 export const api = {
   async login(request: LoginRequest): Promise<LoginResponse> {
-    return fetchWithAuth(`${API_BASE_URL}/v1/auth/login`, null, {
+    return fetchWithAuth(`${API_BASE_URL}/v1/auth/login`, {
       method: 'POST',
       body: JSON.stringify(request),
     });
   },
 
-  async getClients(token: string): Promise<Client[]> {
-    return fetchWithAuth(`${API_BASE_URL}/v1/clients`, token);
+  async getClients(): Promise<Client[]> {
+    return fetchWithAuth(`${API_BASE_URL}/v1/clients`);
   },
 
-  async createClient(token: string, request: CreateClientRequest): Promise<Client> {
-    return fetchWithAuth(`${API_BASE_URL}/v1/clients`, token, {
+  async createClient(request: CreateClientRequest): Promise<Client> {
+    return fetchWithAuth(`${API_BASE_URL}/v1/clients`, {
       method: 'POST',
       body: JSON.stringify(request),
     });
   },
 
-  async updateClient(token: string, id: number, request: UpdateClientRequest): Promise<Client> {
-    return fetchWithAuth(`${API_BASE_URL}/v1/clients/${id}`, token, {
+  async updateClient(id: number, request: UpdateClientRequest): Promise<Client> {
+    return fetchWithAuth(`${API_BASE_URL}/v1/clients/${id}`, {
       method: 'PUT',
       body: JSON.stringify(request),
     });
   },
 
-  async deleteClient(token: string, id: number): Promise<void> {
-    return fetchWithAuth(`${API_BASE_URL}/v1/clients/${id}`, token, {
+  async deleteClient(id: number): Promise<void> {
+    return fetchWithAuth(`${API_BASE_URL}/v1/clients/${id}`, {
       method: 'DELETE',
     });
   },
 
-  async getHourlyUsage(token: string, hours = 24): Promise<HourlyUsageResponse[]> {
-    return fetchWithAuth(`${API_BASE_URL}/v1/reports/hourly?hours=${hours}`, token);
+  async getHourlyUsage(hours = 24): Promise<HourlyUsageResponse[]> {
+    return fetchWithAuth(`${API_BASE_URL}/v1/reports/hourly?hours=${hours}`);
   },
 };
 

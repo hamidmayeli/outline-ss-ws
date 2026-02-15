@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev:web": "vite",
-    "mock:api": "npx rest_api_faker --watch ./mock/db.cjs --routes ./mock/routes.json --middlewares ./mock/middleware.cjs --port 3001",
+    "dev:web": "vite --host 0.0.0.0",
+    "mock:api": "npx rest_api_faker --watch ./mock/db.cjs --routes ./mock/routes.json --middlewares ./mock/middleware.cjs --port 3001 --host 0.0.0.0",
     "dev": "concurrently \"npm run mock:api\" \"npm run dev:web\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -42,3 +42,4 @@
     }
   }
 }
+

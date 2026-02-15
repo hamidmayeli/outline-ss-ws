@@ -33,7 +33,7 @@ export const PieChart: React.FC = () => {
         setRefreshing(true);
       }
       setError('');
-      const data = await api.getClients(token);
+      const data = await api.getClients();
       
       // Calculate chart data
       const clientsWithUsage = data.filter(client => {
@@ -111,10 +111,10 @@ export const PieChart: React.FC = () => {
         <button 
           onClick={handleRefresh} 
           disabled={loading || refreshing}
-          className="refresh-button"
+          className="btn-secondary"
           title="Refresh data"
         >
-          {refreshing ? '↻' : '⟳'}
+          {refreshing ? '↻ Refreshing...' : '⟳ Refresh'}
         </button>
       </div>
 

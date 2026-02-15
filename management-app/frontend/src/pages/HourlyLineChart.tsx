@@ -78,7 +78,7 @@ export const HourlyLineChart: React.FC = () => {
 
     try {
       setError('');
-      const usage = await api.getHourlyUsage(token, hours);
+      const usage = await api.getHourlyUsage(hours);
       const totals = new Map<number, ChartPoint>();
       const perUser = new Map<number, PerUserPoint>();
       const series = usage.map((client, index) => ({

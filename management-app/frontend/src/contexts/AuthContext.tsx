@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { setAuthToken } from '../services/api';
 
 interface AuthContextType {
   token: string | null;
@@ -14,6 +15,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('token');
   });
+
+  // Synchronize token with api module
+  useEffect(() => {
+    setAuthToken(token);
+  }, [token]);
 
   const login = (newToken: string) => {
     localStorage.setItem('token', newToken);

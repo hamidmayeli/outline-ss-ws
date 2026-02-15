@@ -76,7 +76,7 @@ export const WeeklyComparisonChart: React.FC = () => {
     try {
       setError('');
       setLoading(true);
-      const usage = await api.getHourlyUsage(token, HOURS_LOOKBACK);
+      const usage = await api.getHourlyUsage(HOURS_LOOKBACK);
       const now = Date.now();
       const oldestTime = now - HOURS_LOOKBACK * HOUR_MS;
       const currentWeekStart = getWeekStartOffset(now, offsetMs);

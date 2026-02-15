@@ -20,7 +20,7 @@ export const Clients: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(`name`);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const { token, logout } = useAuth();
   const confirm = useConfirm();
@@ -30,7 +30,7 @@ export const Clients: React.FC = () => {
     
     try {
       setError('');
-      const data = await api.getClients(token);
+      const data = await api.getClients();
       setClients(data);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -76,7 +76,7 @@ export const Clients: React.FC = () => {
     if (!approved) return;
 
     try {
-      await api.deleteClient(token, client.id);
+      await api.deleteClient(client.id);
       await loadClients();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {

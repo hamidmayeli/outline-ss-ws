@@ -65,10 +65,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => 
     try {
       if (isEdit) {
         const request: UpdateClientRequest = { name, limit: parsedLimit };
-        await api.updateClient(token, client.id, request);
+        await api.updateClient(client.id, request);
       } else {
         const request: CreateClientRequest = { name, limit: parsedLimit };
-        await api.createClient(token, request);
+        await api.createClient(request);
       }
       onClose(true);
     } catch {
