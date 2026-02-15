@@ -1,9 +1,15 @@
 using OutlineManager.API.DTOs;
 using OutlineManager.API.Models;
 using OutlineManager.API.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text;
 
 namespace OutlineManager.API.Tests.TestCases;
 
@@ -76,7 +82,7 @@ public class UserInteractsWithRefreshTokens : TestCaseBase
 
         var storedTokens = await _fixture.GetRefreshTokens();
         Assert.Single(storedTokens);
-        Assert.Equal(rotatedRefreshToken, storedTokens[0].Token);
+        Assert.Equal(Uri.UnescapeDataString(rotatedRefreshToken), storedTokens[0].Token);
         Assert.True(storedTokens[0].ExpiresAt > DateTime.UtcNow);
     }
 
@@ -147,18 +153,10 @@ public class UserInteractsWithRefreshTokens : TestCaseBase
     [Fact]
     public async Task When_AccessTokenExpires_ProtectedEndpointReturnsUnauthorized()
     {
-        var config = new Dictionary<string, string?>
-        {
-            ["Jwt:SecretKey"] = "dev-secret-key-for-development-only-min-32-characters-long",
-            ["Jwt:Issuer"] = "OutlineManager",
-            ["Jwt:Audience"] = "OutlineManagerAPI",
-            ["Jwt:ExpirationMinutes"] = "-1"
-        };
-
-        var jwtService = new JwtService(
-            new ConfigurationBuilder().AddInMemoryCollection(config).Build(),
-            NSubstitute.Substitute.For<OutlineManager.API.Interfaces.IUserRepository>(),
-            NSubstitute.Substitute.For<OutlineManager.API.Interfaces.IRefreshTokenRepository>());
+        var configuration = _fixture.Services.GetRequiredService<IConfiguration>();
+        var secretKey = configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
+        var issuer = configuration["Jwt:Issuer"] ?? "OutlineManager";
+        var audience = configuration["Jwt:Audience"] ?? "OutlineManagerAPI";
 
         var user = new User
         {
@@ -167,9 +165,23 @@ public class UserInteractsWithRefreshTokens : TestCaseBase
             PasswordHash = "hash"
         };
 
-        var token = jwtService.GenerateToken(user);
+        var expiredToken = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims:
+            [
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.Username)
+            ],
+            notBefore: DateTime.UtcNow.AddMinutes(-10),
+            expires: DateTime.UtcNow.AddMinutes(-5),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                SecurityAlgorithms.HmacSha256)
+        ));
+
         var client = _fixture.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", expiredToken);
 
         var response = await client.GetAsync("/api/v1/clients/");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -185,6 +197,6 @@ public class UserInteractsWithRefreshTokens : TestCaseBase
         }
 
         var index = cookie.IndexOf('=');
-        return index >= 0 ? cookie[(index + 1)..] : string.Empty;
+        return index >= 0 ? Uri.UnescapeDataString(cookie[(index + 1)..]) : string.Empty;
     }
 }
