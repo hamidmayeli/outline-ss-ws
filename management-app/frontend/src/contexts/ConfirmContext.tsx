@@ -82,6 +82,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useConfirm = () => {
   const context = useContext(ConfirmContext);
   if (!context) {
@@ -90,6 +91,7 @@ export const useConfirm = () => {
   return context.confirm;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useConfirmDialog = () => {
   const context = useContext(ConfirmContext);
   if (!context) {

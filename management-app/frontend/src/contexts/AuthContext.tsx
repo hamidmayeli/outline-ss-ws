@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { setAuthToken, setOnUnauthorized } from '../services/api';
 
@@ -16,6 +16,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return localStorage.getItem('token');
   });
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    setToken(null);
+  }, []);
+
   // Synchronize token with api module
   useEffect(() => {
     setAuthToken(token);
@@ -23,16 +28,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setOnUnauthorized(logout);
-  }, []);
+  }, [logout]);
 
   const login = (newToken: string) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
   };
 
   const isAuthenticated = !!token;
