@@ -10,10 +10,7 @@ interface ClientConfigModalProps {
 export const ClientConfigModal: React.FC<ClientConfigModalProps> = ({ client, onClose }) => {
   const [copied, setCopied] = useState(false);
 
-  let configUrl = `${window.location.origin}/api/v1/config/${client.id}#${client.name}`;
-
-  // replace http/https with ssconf scheme
-  configUrl = configUrl.replace(/^https?:\/\//, 'ssconf://');
+  const configUrl = `ssconf://${window.location.host}/api/v1/config/${client.id}#${window.location.host.split('.')[0]}-${client.name}`;
 
   const handleCopy = async () => {
     try {
