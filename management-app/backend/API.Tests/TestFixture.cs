@@ -171,6 +171,25 @@ public class TestFixture : WebApplicationFactory<Program>
         return File.WriteAllTextAsync(filePath, json);
     }
 
+    public Task SetRefreshTokens(params IEnumerable<RefreshToken> refreshTokens)
+    {
+        var filePath = Path.Combine(_dataDirectory, "refresh-tokens.json");
+        var json = JsonSerializer.Serialize(refreshTokens);
+        return File.WriteAllTextAsync(filePath, json);
+    }
+
+    public async Task<List<RefreshToken>> GetRefreshTokens()
+    {
+        var filePath = Path.Combine(_dataDirectory, "refresh-tokens.json");
+        if (!File.Exists(filePath))
+        {
+            return [];
+        }
+
+        var json = await File.ReadAllTextAsync(filePath);
+        return JsonSerializer.Deserialize<List<RefreshToken>>(json) ?? [];
+    }
+
     public HttpClient GetAuthenticatedClient()
     {
         var user = new User

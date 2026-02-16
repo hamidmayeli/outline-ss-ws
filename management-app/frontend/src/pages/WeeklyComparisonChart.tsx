@@ -10,9 +10,8 @@ import {
   CartesianGrid,
   Brush,
 } from 'recharts';
-import { useAuth } from '../contexts/AuthContext';
 import { useTimeZone } from '../contexts/TimeZoneContext';
-import { api, ApiError } from '../services/api';
+import { api } from '../services/api';
 import { formatBytes } from '../utils/formatBytes';
 import './WeeklyComparisonChart.css';
 
@@ -66,13 +65,10 @@ export const WeeklyComparisonChart: React.FC = () => {
   const [error, setError] = useState('');
   const [weekSeries, setWeekSeries] = useState<WeekSeries[]>([]);
   const [chartData, setChartData] = useState<WeekHourPoint[]>([]);
-  const { token, logout } = useAuth();
   const { offsetMinutes, setOffsetMinutes, options } = useTimeZone();
   const offsetMs = offsetMinutes * 60 * 1000;
 
   const loadUsage = useCallback(async () => {
-    if (!token) return;
-
     try {
       setError('');
       setLoading(true);
@@ -125,15 +121,11 @@ export const WeeklyComparisonChart: React.FC = () => {
       setWeekSeries(series);
       setChartData(data);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-      } else {
-        setError('Failed to load weekly comparison');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to load weekly comparison');
     } finally {
       setLoading(false);
     }
-  }, [token, logout, offsetMs]);
+  }, [offsetMs]);
 
   useEffect(() => {
     loadUsage();

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
@@ -7,12 +8,18 @@ using OutlineManager.API.Models;
 
 namespace OutlineManager.API.Services;
 
-public class JwtService(IConfiguration configuration) : IJwtService
+public class JwtService(
+    IConfiguration configuration,
+    IUserRepository userRepository,
+    IRefreshTokenRepository refreshTokenRepository) : IJwtService
 {
     private readonly string _secretKey = configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
     private readonly string _issuer = configuration["Jwt:Issuer"] ?? "OutlineManager";
     private readonly string _audience = configuration["Jwt:Audience"] ?? "OutlineManagerAPI";
-    private readonly int _expirationHours = int.Parse(configuration["Jwt:ExpirationHours"] ?? "24");
+    private readonly int _expirationMinutes = int.Parse(configuration["Jwt:ExpirationMinutes"] ?? "15");
+    private readonly int _refreshTokenExpirationDays = int.Parse(configuration["Jwt:RefreshTokenExpirationDays"] ?? "30");
+    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository = refreshTokenRepository;
 
     public string GenerateToken(User user)
     {
@@ -26,7 +33,7 @@ public class JwtService(IConfiguration configuration) : IJwtService
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.Username)
             ]),
-            Expires = DateTime.UtcNow.AddHours(_expirationHours),
+            Expires = DateTime.UtcNow.AddMinutes(_expirationMinutes),
             Issuer = _issuer,
             Audience = _audience,
             SigningCredentials = new SigningCredentials(
@@ -66,5 +73,56 @@ public class JwtService(IConfiguration configuration) : IJwtService
         {
             return null;
         }
+    }
+
+    public async Task<RefreshToken> GenerateRefreshTokenAsync(User user)
+    {
+        await _refreshTokenRepository.DeleteExpiredAsync();
+
+        var refreshToken = new RefreshToken
+        {
+            Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(_refreshTokenExpirationDays),
+            LastUsedAt = DateTime.UtcNow,
+        };
+
+        await _refreshTokenRepository.CreateAsync(refreshToken);
+        return refreshToken;
+    }
+
+    public async Task<(User? User, RefreshToken? RefreshToken)> ValidateAndRefreshTokenAsync(string refreshToken)
+    {
+        await _refreshTokenRepository.DeleteExpiredAsync();
+
+        var storedToken = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+        if (storedToken == null)
+        {
+            return (null, null);
+        }
+
+        var user = await _userRepository.GetByIdAsync(storedToken.UserId);
+        if (user == null)
+        {
+            await _refreshTokenRepository.DeleteByTokenAsync(refreshToken);
+            return (null, null);
+        }
+
+        var rotatedToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var expiresAt = DateTime.UtcNow.AddDays(_refreshTokenExpirationDays);
+        var refreshed = await _refreshTokenRepository.RotateAsync(refreshToken, rotatedToken, expiresAt);
+
+        if (refreshed == null)
+        {
+            return (null, null);
+        }
+
+        return (user, refreshed);
+    }
+
+    public async Task DeleteRefreshTokenAsync(string refreshToken)
+    {
+        await _refreshTokenRepository.DeleteByTokenAsync(refreshToken);
     }
 }

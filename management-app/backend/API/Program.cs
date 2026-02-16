@@ -58,6 +58,7 @@ builder.Services.AddAuthorization();
 
 // Register services
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
+builder.Services.AddSingleton<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddSingleton<IClientRepository, ClientRepository>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IOutlineSyncService, OutlineSyncService>();
@@ -70,11 +71,31 @@ builder.Services.AddHttpClient<IMetricsService, MetricsService>(client =>
 });
 
 // Add CORS
+var corsPolicyName = builder.Environment.IsProduction() ? "ProductionOpenCors" : "LocalhostAnyPort";
+
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("ProductionOpenCors", policy =>
     {
         policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+
+    options.AddPolicy("LocalhostAnyPort", policy =>
+    {
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                  {
+                      return false;
+                  }
+
+                  return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                      || uri.Host.Equals("::1", StringComparison.OrdinalIgnoreCase);
+              })
+              .AllowCredentials()
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -106,7 +127,7 @@ var staticFileOptions = new StaticFileOptions
 };
 app.UseStaticFiles(staticFileOptions);
 
-app.UseCors();
+app.UseCors(corsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 

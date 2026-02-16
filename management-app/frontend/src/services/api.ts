@@ -2,20 +2,71 @@ const API_BASE_URL = import.meta.env.VITE_API_HOST || '/api';
 
 // Store the auth token internally
 let authToken: string | null = null;
-
-// Initialize token from localStorage if available
-if (typeof window !== 'undefined' && window.localStorage) {
-  authToken = localStorage.getItem('token');
-}
+let onUnauthorized: (() => void) | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
 // Function to set the auth token
 export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
-// Function to get the current auth token
-export function getAuthToken(): string | null {
-  return authToken;
+export function setOnUnauthorized(callback: (() => void) | null) {
+  onUnauthorized = callback;
+}
+
+function handleUnauthorized() {
+  onUnauthorized?.();
+}
+
+function getErrorMessage(errorText: string, fallback: string): string {
+  const trimmed = errorText.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { message?: string; error?: string; title?: string };
+    return parsed.message || parsed.error || parsed.title || trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/v1/auth/refreshToken`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const payload = await response.json() as LoginResponse;
+      if (!payload?.token) {
+        return false;
+      }
+
+      authToken = payload.token;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('token', payload.token);
+      }
+
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 export interface LoginRequest {
@@ -77,7 +128,7 @@ class ApiError extends Error {
   }
 }
 
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
+async function fetchWithAuth(url: string, options: RequestInit = {}, hasRetried = false) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -88,15 +139,30 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
   const response = await fetch(url, {
     ...options,
+    credentials: options.credentials ?? 'include',
     headers: {
       ...headers,
       ...(options.headers as Record<string, string> || {}),
     },
   });
 
+  if (response.status === 401) {
+    const isRefreshEndpoint = url.endsWith('/v1/auth/refreshToken');
+    const isLoginEndpoint = url.endsWith('/v1/auth/login');
+
+    if (!hasRetried && !isRefreshEndpoint && !isLoginEndpoint) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        return fetchWithAuth(url, options, true);
+      }
+    }
+
+    handleUnauthorized();
+  }
+
   if (!response.ok) {
     const errorText = await response.text();
-    throw new ApiError(response.status, errorText || response.statusText);
+    throw new ApiError(response.status, getErrorMessage(errorText, response.statusText));
   }
 
   if (response.status === 204) {
