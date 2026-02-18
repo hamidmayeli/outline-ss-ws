@@ -17,6 +17,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showReportsDropdown, setShowReportsDropdown] = useState(false);
+  const [showBurgerMenu, setShowBurgerMenu] = useState(false);
+  const hostPrefix = window.location.host.split('.')[0];
 
   const handleLogout = () => {
     logout();
@@ -75,16 +77,39 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </nav>
           </div>
           <div className="header-right">
-            <button 
-              className="theme-toggle" 
-              onClick={toggleTheme}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-              {theme === 'light' ? '🌙' : '☀️'}
-            </button>
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
+            <span className="host-prefix">{hostPrefix}</span>
+            <div className="burger-menu-container">
+              <button
+                className="burger-menu-toggle"
+                onClick={() => setShowBurgerMenu(!showBurgerMenu)}
+                aria-label="Open account menu"
+                title="Menu"
+              >
+                ☰
+              </button>
+              {showBurgerMenu && (
+                <div className="burger-menu-dropdown">
+                  <button
+                    className="burger-menu-item"
+                    onClick={() => {
+                      toggleTheme();
+                      setShowBurgerMenu(false);
+                    }}
+                  >
+                    {theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                  </button>
+                  <button
+                    className="burger-menu-item"
+                    onClick={() => {
+                      setShowBurgerMenu(false);
+                      handleLogout();
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
