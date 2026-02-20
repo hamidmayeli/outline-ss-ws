@@ -8,8 +8,8 @@
     "e2e:test:headed": "playwright test --headed",
     "e2e:test:ui": "playwright test --ui",
     "e2e:report": "playwright show-report",
-    "e2e:up": "node -e \"console.log('Phase 2 will provide docker runtime: build app image + start fake metrics + start app container')\"",
-    "e2e:down": "node -e \"console.log('Phase 2 will provide docker teardown for E2E runtime')\""
+    "e2e:up": "docker compose -f ./docker/docker-compose.e2e.yaml up -d --build",
+    "e2e:down": "docker compose -f ./docker/docker-compose.e2e.yaml down -v --remove-orphans"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",

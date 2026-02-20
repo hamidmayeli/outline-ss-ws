@@ -1,0 +1,4 @@
+{
+  "/health": "/health",
+  "/api/v1/*": "/fallback"
+}
