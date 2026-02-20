@@ -4,6 +4,8 @@ This folder contains `rest_api_faker` configuration used by E2E docker runtime.
 
 ## Endpoints served
 - `GET /health`
+- `GET /crash?status=500|404`
+- `GET /recover`
 - `GET /api/v1/query`
 - `GET /api/v1/query_range`
 
@@ -27,3 +29,8 @@ Scenario can be selected using one of these (in precedence order):
 If no explicit scenario is provided:
 - `query_range` with `step >= 86400` uses `daily-30d`
 - otherwise uses `hourly-24h`
+
+## Outage simulation controls
+- `/crash` turns on outage mode for `/api/v1/*` endpoints while keeping `/health` always healthy.
+- `/recover` turns outage mode off and restores normal responses.
+- Optional query: `status` can be `500` (default) or `404`.

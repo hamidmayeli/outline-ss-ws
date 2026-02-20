@@ -13,7 +13,7 @@ test.describe('Clients', () => {
     await seedClients(seedSamples.clientsWithMixedStatus);
   });
 
-  test('shows client list and usage summary', async ({ page }) => {
+  test('SCN-CLIENT-001: shows client list and usage summary', async ({ page }) => {
     await login(page);
     const seededClients = await readSeededClients();
 

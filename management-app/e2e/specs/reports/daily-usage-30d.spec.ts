@@ -8,7 +8,7 @@ test.describe('Reports - 30 Day Usage', () => {
     await seedClients(seedSamples.clientsWithMixedStatus);
   });
 
-  test('renders pie chart usage view based on last 30 days data', async ({ page }) => {
+  test('SCN-REP-D-001: renders pie chart usage view based on last 30 days data', async ({ page }) => {
     await login(page);
 
     await page.goto('/reports/piechart');

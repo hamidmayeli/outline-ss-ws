@@ -130,25 +130,25 @@ management-app/
 > This section is intentionally a placeholder catalog. Each item should later be expanded into Given/When/Then + fixture mapping.
 
 ### Authentication
-- [ ] SCN-AUTH-001: When there is not any user, login creates a user.
-- [ ] SCN-AUTH-002: When there is users, invalid login shows error and stays on login page.
-- [ ] SCN-AUTH-003: Unauthorized access to protected route redirects to login.
+- [x] SCN-AUTH-001: When there is not any user, login creates a user.
+- [x] SCN-AUTH-002: When there is users, invalid login shows error and stays on login page.
+- [x] SCN-AUTH-003: Unauthorized access to protected route redirects to login.
 
 ### Clients
-- [ ] SCN-CLIENT-001: Client list loads and displays expected rows.
-- [ ] SCN-CLIENT-002: Client create/edit/delete flow updates UI correctly and the the outline config file in backend is updated accordingly.
+- [x] SCN-CLIENT-001: Client list loads and displays expected rows.
+- [x] SCN-CLIENT-002: Client create/edit/delete flow updates UI correctly and the the outline config file in backend is updated accordingly.
 
 ### Configs
-- [ ] SCN-CONF-001: Config endpoint is publicly available and returns correct data.
-- [ ] SCN-CONF-002: Config endpoint takes client limits / activeness into account.
+- [x] SCN-CONF-001: Config endpoint is publicly available and returns correct data.
+- [x] SCN-CONF-002: Config endpoint takes client limits / activeness into account.
 
 ### Reports - Hourly
-- [ ] SCN-REP-H-001: Hourly chart renders 24 points for selected client/all clients.
-- [ ] SCN-REP-H-002: Hourly totals match mocked metric values.
+- [x] SCN-REP-H-001: Hourly chart renders 24 points for selected client/all clients.
+- [x] SCN-REP-H-002: Hourly totals match mocked metric values.
 
 ### Error/Resilience
-- [ ] SCN-ERR-001: Metrics API timeout/error shows fallback UI state.
-- [ ] SCN-ERR-002: Empty metrics response shows empty-state messaging.
+- [x] SCN-ERR-001: Metrics API timeout/error shows fallback UI state.
+- [x] SCN-ERR-002: Empty metrics response shows empty-state messaging.
 
 ## Acceptance Criteria for Roadmap Completion
 - Playwright E2E can run locally with one command from `e2e/`.

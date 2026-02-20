@@ -5,6 +5,7 @@ const runtimeDataDir = path.resolve(process.cwd(), 'runtime-data');
 const clientsFile = path.join(runtimeDataDir, 'clients.json');
 const usersFile = path.join(runtimeDataDir, 'users.json');
 const refreshTokensFile = path.join(runtimeDataDir, 'refresh-tokens.json');
+const outlineConfigFile = path.join(runtimeDataDir, 'outline-config.yaml');
 
 type SeedClient = {
   Id: string;
@@ -14,6 +15,14 @@ type SeedClient = {
   Limit: number | null;
   IsActive: boolean;
   AccessKeyId: number;
+};
+
+type SeedUser = {
+  Id: string;
+  Username: string;
+  PasswordHash: string;
+  CreatedAt: string;
+  UpdatedAt: string | null;
 };
 
 const ensureRuntimeDataDir = async () => {
@@ -35,9 +44,36 @@ export async function seedClients(clients: SeedClient[]) {
   await fs.writeFile(clientsFile, JSON.stringify(clients), 'utf8');
 }
 
+export async function seedUsers(users: SeedUser[]) {
+  await ensureRuntimeDataDir();
+  await fs.writeFile(usersFile, JSON.stringify(users), 'utf8');
+}
+
+export async function readRuntimeFile(fileName: string): Promise<string> {
+  const filePath = path.join(runtimeDataDir, fileName);
+  return fs.readFile(filePath, 'utf8');
+}
+
 export async function readSeededClients(): Promise<SeedClient[]> {
   const content = await fs.readFile(clientsFile, 'utf8');
   return JSON.parse(content) as SeedClient[];
+}
+
+export async function readSeededUsers(): Promise<SeedUser[]> {
+  try {
+    const content = await fs.readFile(usersFile, 'utf8');
+    return JSON.parse(content) as SeedUser[];
+  } catch {
+    return [];
+  }
+}
+
+export async function readOutlineConfig(): Promise<string> {
+  try {
+    return await fs.readFile(outlineConfigFile, 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 export const seedSamples = {

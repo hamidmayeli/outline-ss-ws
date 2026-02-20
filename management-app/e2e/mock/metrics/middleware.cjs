@@ -36,6 +36,9 @@ const fixtures = {
   'daily-retention-edge': readFixture('daily-retention-edge.json'),
 };
 
+let crashMode = false;
+let crashStatus = 500;
+
 const buildTimestamps = (start, end, step) => {
   const output = [];
   for (let ts = start; ts <= end; ts += step) {
@@ -80,6 +83,31 @@ const sumValues = (values) =>
 module.exports = function (req, res, next) {
   if (req.path === '/health') {
     return res.status(200).json({ status: 'ok' });
+  }
+
+  if (req.path === '/crash') {
+    const requestedStatus = Number(req.query.status);
+    if (requestedStatus === 404 || requestedStatus === 500) {
+      crashStatus = requestedStatus;
+    } else {
+      crashStatus = 500;
+    }
+
+    crashMode = true;
+    return res.status(200).json({ status: 'ok', crashMode: true, crashStatus });
+  }
+
+  if (req.path === '/recover') {
+    crashMode = false;
+    return res.status(200).json({ status: 'ok', crashMode: false });
+  }
+
+  if (crashMode && req.path.startsWith('/api/v1/')) {
+    return res.status(crashStatus).json({
+      status: 'error',
+      error: 'simulated metrics outage',
+      code: crashStatus,
+    });
   }
 
   if (req.path === '/api/v1/query') {
