@@ -2,7 +2,8 @@ FROM debian:bookworm-slim
 
 # Set environment variables
 ENV OUTLINE_VERSION=latest \
-    OUTLINE_CONFIG=/etc/outline/config.yaml
+    OUTLINE_CONFIG=/etc/outline/config.yaml \
+    PROMETHEUS_RETENTION=30d
 
 # Install dependencies
 RUN apt-get update && \
@@ -55,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 WORKDIR /etc/outline
 
 # Run outline-ss-server and Prometheus
-CMD ["/bin/sh", "-c", "prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus --web.listen-address=0.0.0.0:9092 & /usr/local/bin/outline-ss-server -config /etc/outline/config.yaml -metrics 0.0.0.0:9091"]
+CMD ["/bin/sh", "-c", "prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus --storage.tsdb.retention.time=${PROMETHEUS_RETENTION} --web.listen-address=0.0.0.0:9092 & /usr/local/bin/outline-ss-server -config /etc/outline/config.yaml -metrics 0.0.0.0:9091"]
