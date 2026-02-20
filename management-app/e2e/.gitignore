@@ -25,3 +25,4 @@ dist-ssr
 .pnpm-store
 .env
 playwright-report
+test-results

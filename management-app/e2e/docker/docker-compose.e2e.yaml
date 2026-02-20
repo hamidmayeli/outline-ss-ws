@@ -13,7 +13,9 @@ services:
         --middlewares /e2e/mock/metrics/middleware.cjs
         --port 3001 --host 0.0.0.0
     volumes:
-      - ../mock:/e2e/mock:ro
+      - ../:/e2e:ro
+    ports:
+      - "3001:3001"
     healthcheck:
       test:
         - CMD
@@ -27,6 +29,7 @@ services:
 
   management-app:
     container_name: outline-e2e-management-app
+    image: management-app:e2e-local
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -50,7 +53,7 @@ services:
     volumes:
       - e2e_app_data:/app/data
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost/health >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost/health >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
