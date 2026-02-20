@@ -35,6 +35,40 @@ jobs:
       working-directory: management-app
       run: docker build --target build-client .
 
+    - name: Setup Node.js for E2E (tag only)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Setup pnpm for E2E (tag only)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Install E2E dependencies (tag only)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      working-directory: management-app/e2e
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Playwright browsers (tag only)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      working-directory: management-app/e2e
+      run: pnpm e2e:install:browsers
+
+    - name: Run E2E tests (tag only)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      working-directory: management-app/e2e
+      run: |
+        pnpm e2e:up-build
+        pnpm e2e:test
+
+    - name: Teardown E2E runtime (tag only)
+      if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      working-directory: management-app/e2e
+      run: pnpm e2e:down
+
     - name: Log in to Docker Hub
       id: login
       if: github.actor != 'dependabot[bot]'
