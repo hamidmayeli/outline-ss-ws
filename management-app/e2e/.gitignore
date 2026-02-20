@@ -26,3 +26,4 @@ dist-ssr
 .env
 playwright-report
 test-results
+runtime-data

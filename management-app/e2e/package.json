@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "e2e:install:browsers": "playwright install chromium",
     "e2e:test": "playwright test",
     "e2e:test:headed": "playwright test --headed",
     "e2e:test:ui": "playwright test --ui",

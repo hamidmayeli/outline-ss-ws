@@ -51,13 +51,10 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - e2e_app_data:/app/data
+      - ../runtime-data:/app/data
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost/health >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 20s
-
-volumes:
-  e2e_app_data:
