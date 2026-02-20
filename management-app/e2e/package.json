@@ -1,0 +1,20 @@
+{
+  "name": "outline-manager-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "e2e:test": "playwright test",
+    "e2e:test:headed": "playwright test --headed",
+    "e2e:test:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report",
+    "e2e:up": "node -e \"console.log('Phase 2 will provide docker runtime: build app image + start fake metrics + start app container')\"",
+    "e2e:down": "node -e \"console.log('Phase 2 will provide docker teardown for E2E runtime')\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@playwright/test": "^1.53.2",
+    "rest_api_faker": "^0.0.5",
+    "typescript": "^5.9.3"
+  }
+}

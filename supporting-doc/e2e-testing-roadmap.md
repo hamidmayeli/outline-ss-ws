@@ -8,11 +8,11 @@ Create end-to-end tests that validate the full flow across:
 Constraint for this E2E suite:
 - Real metrics source is **not** used in tests.
 - Metrics endpoint is mocked using `rest_api_faker` (NPM package).
-- E2E project is kept in a **separate folder** at workspace root.
+- E2E project is kept in a **separate folder** inside `management-app/e2e`.
 
 ## End Result (Target State)
 At the end of this roadmap, the workspace has:
-- A standalone Playwright-based E2E project under `e2e/`.
+- A standalone Playwright-based E2E project under `management-app/e2e/`.
 - Deterministic mocked metrics responses via `rest_api_faker` for chart/report scenarios.
 - Docker-driven execution that tests the combined app image from `management-app/Dockerfile`.
 - Repeatable local and CI-friendly commands for running E2E tests.
@@ -21,56 +21,55 @@ At the end of this roadmap, the workspace has:
 ## Proposed File/Folder Structure
 
 ```text
-e2e/
-  package.json
-  playwright.config.ts
-  .env.example
-  docker/
-    docker-compose.e2e.yaml         # app container + fake metric server
-  mock/
-    metrics/
-      db.cjs
-      routes.json
-      middleware.cjs
-      README.md
-  fixtures/
-    metrics/
-      hourly-24h.json
-      daily-30d.json
-      daily-retention-edge.json
-  helpers/
-    auth.ts
-    containers.ts
-    waitFor.ts
-  specs/
-    smoke/
-      login.spec.ts
-    reports/
-      hourly-usage.spec.ts
-      daily-usage-30d.spec.ts
-      retention-window.spec.ts
-    clients/
-      list-clients.spec.ts
-  scenarios.placeholder.md
-  README.md
-
 management-app/
   Dockerfile                         # source of tested app image (frontend+backend)
   backend/
     API.Tests/
       E2EContract/
         MetricsContractTests.cs      # optional contract checks for DTO compatibility
+  e2e/
+    package.json
+    playwright.config.ts
+    .env.example
+    docker/
+      docker-compose.e2e.yaml         # app container + fake metric server
+    mock/
+      metrics/
+        db.cjs
+        routes.json
+        middleware.cjs
+        README.md
+    fixtures/
+      metrics/
+        hourly-24h.json
+        daily-30d.json
+        daily-retention-edge.json
+    helpers/
+      auth.ts
+      containers.ts
+      waitFor.ts
+    specs/
+      smoke/
+        login.spec.ts
+      reports/
+        hourly-usage.spec.ts
+        daily-usage-30d.spec.ts
+        retention-window.spec.ts
+      clients/
+        list-clients.spec.ts
+    scenarios.placeholder.md
+    README.md
 ```
 
 ## Implementation Roadmap
 
 ### Phase 1: Standalone E2E Project Bootstrap
-1. Create `e2e/` with independent Node tooling (`@playwright/test`, `rest_api_faker`).
-2. Add `e2e/playwright.config.ts` with:
+1. Create `management-app/e2e/` with independent Node tooling (`@playwright/test`, `rest_api_faker`).
+2. Add `management-app/e2e/playwright.config.ts` with:
    - `baseURL` from env (`E2E_BASE_URL`, default `http://localhost:8080`).
    - retries/timeouts suitable for CI.
    - trace/screenshot/video policy on failure.
-3. Add scripts in `e2e/package.json`:
+3. Add scripts in `management-app/e2e/package.json`:
    - `e2e:test`
    - `e2e:test:headed`
    - `e2e:test:ui`
