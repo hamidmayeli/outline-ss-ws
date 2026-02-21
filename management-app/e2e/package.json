@@ -1,0 +1,22 @@
+{
+  "name": "outline-manager-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "e2e:install:browsers": "playwright install chromium",
+    "e2e:test": "playwright test",
+    "e2e:test:headed": "playwright test --headed",
+    "e2e:test:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report",
+    "e2e:up": "docker compose -f ./docker/docker-compose.e2e.yaml up -d",
+    "e2e:up-build": "docker compose -f ./docker/docker-compose.e2e.yaml up -d --build",
+    "e2e:down": "docker compose -f ./docker/docker-compose.e2e.yaml down -v --remove-orphans"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@playwright/test": "^1.53.2",
+    "rest_api_faker": "^0.0.5",
+    "typescript": "^5.9.3"
+  }
+}

@@ -151,7 +151,7 @@ apiV1.MapGroup("/config")
     .WithTags("Configuration");
 
 // Health check
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
+app.MapGet("/health", () => Results.Text("healthy", "text/plain"))
     .WithName("HealthCheck")
     .WithTags("Health");
 

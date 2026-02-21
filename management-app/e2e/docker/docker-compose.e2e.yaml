@@ -1,0 +1,60 @@
+services:
+  fake-metrics:
+    image: node:22-alpine
+    container_name: outline-e2e-fake-metrics
+    working_dir: /e2e
+    command:
+      - sh
+      - -c
+      - >-
+        npm --silent i -g rest_api_faker@0.0.5 &&
+        rest_api_faker --watch /e2e/mock/metrics/db.cjs
+        --routes /e2e/mock/metrics/routes.json
+        --middlewares /e2e/mock/metrics/middleware.cjs
+        --port 3001 --host 0.0.0.0
+    volumes:
+      - ../:/e2e:ro
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  management-app:
+    container_name: outline-e2e-management-app
+    image: management-app:e2e-local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    depends_on:
+      fake-metrics:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - Jwt__SecretKey=e2e-test-secret-key-should-be-32-plus
+      - AppSettings__Domain=localhost
+      - AppSettings__TcpPath=/tcp-ws
+      - AppSettings__UdpPath=/udp-ws
+      - AppSettings__OutlineConfigPath=/app/data/outline-config.yaml
+      - AppSettings__PrometheusUrl=http://fake-metrics:3001
+      - AppSettings__ClientLimitCheckMinutes=60
+      - DataDirectory=/app/data
+      - Logging__LogLevel__Default=Warning
+    ports:
+      - "8080:80"
+    volumes:
+      - ../runtime-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
