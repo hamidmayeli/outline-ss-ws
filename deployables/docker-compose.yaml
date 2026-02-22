@@ -2,7 +2,7 @@ services:
   outline-server:
     image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
-    restart: unless-stopped
+    restart: always
     labels:
       - "autoheal=true"
     healthcheck:
@@ -18,7 +18,7 @@ services:
   management-app:
     image: hamidmayeli/outline-manager:latest
     container_name: management-app
-    restart: unless-stopped
+    restart: always
     labels:
       - "autoheal=true"
     healthcheck:
@@ -48,7 +48,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: nginx-proxy
-    restart: unless-stopped
+    restart: always
     environment:
       - DOMAIN=${DOMAIN}
       - TCP_PATH=${TCP_PATH}
@@ -69,7 +69,7 @@ services:
   autoheal:
     image: willfarrell/autoheal:latest
     container_name: autoheal
-    restart: unless-stopped
+    restart: always
     environment:
       - AUTOHEAL_CONTAINER_LABEL=autoheal
       - AUTOHEAL_INTERVAL=10
