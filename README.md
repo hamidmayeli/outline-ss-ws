@@ -35,6 +35,9 @@ The installer downloads [deployables/docker-compose.yaml](deployables/docker-com
   - Different reports and monitoring 
 - Automated SSL setup, firewall configuration, and scheduled updates.
 
+## Troubleshooting
+For quick recovery steps and the client-connection scenario, see [supporting-doc/troubleshoot.md](supporting-doc/troubleshoot.md).
+
 ## How to contribute
 Please open a PR and follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
