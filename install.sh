@@ -272,6 +272,7 @@ setup_install_directory() {
     mkdir -p outline/config
     mkdir -p data
     mkdir -p prometheus
+    mkdir -p certbot-webroot
     
     print_success "Installation directory prepared"
 }
@@ -534,10 +535,16 @@ EOF
         chmod +x "$INSTALL_DIR/renew-cert.sh"
     else
         print_info "Creating default cert renewal script..."
-        cat > "$INSTALL_DIR/renew-cert.sh" <<'EOF'
+        cat > "$INSTALL_DIR/renew-cert.sh" <<'RENEW_EOF'
 #!/bin/bash
-certbot renew --quiet --post-hook "docker compose -f $INSTALL_DIR/docker-compose.yaml restart nginx"
-EOF
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOMAIN=$(grep -E "^DOMAIN=" "$SCRIPT_DIR/.env" | tail -n1 | cut -d= -f2-)
+mkdir -p "$SCRIPT_DIR/certbot-webroot/.well-known/acme-challenge"
+if certbot certonly --webroot -w "$SCRIPT_DIR/certbot-webroot" -d "$DOMAIN" --non-interactive --agree-tos --keep-until-expiring; then
+    docker restart nginx-proxy
+fi
+RENEW_EOF
         chmod +x "$INSTALL_DIR/renew-cert.sh"
     fi
     

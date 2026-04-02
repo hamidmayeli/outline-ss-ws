@@ -1,48 +1,47 @@
 #!/bin/bash
 
 # Renew SSL Certificate Script
-# The following code is a template for renewing SSL certificates using certbot in a Docker container.
+# Uses certbot webroot mode with the Docker nginx container serving ACME challenges.
+# Designed to run as a daily cron job; certbot only renews when within 30 days of expiry.
 
-# # Run certbot and capture output
-# OUTPUT=$(docker run --rm \
-#   -v /root/cert-data/etc/letsencrypt:/etc/letsencrypt \
-#   -v /root/cert-data/var/lib/letsencrypt:/var/lib/letsencrypt \
-#   -v /root/cert-data/var/log/letsencrypt:/var/log/letsencrypt \
-#   -v /root/cert-data/webroot:/var/www/html \
-#   certbot/certbot certonly \
-#     --webroot -w /var/www/html \
-#     -d private.mayeli.uk \
-#     --agree-tos \
-#     --email admin@mayeli.uk \
-#     --non-interactive 2>&1)
+set -e
 
-# # Capture the exit code immediately
-# EXIT_CODE=$?
+# Resolve the directory this script lives in
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# # Print certbot output
-# echo "$OUTPUT"
+# Read DOMAIN from .env
+if [[ ! -f "$SCRIPT_DIR/.env" ]]; then
+    echo "Error: $SCRIPT_DIR/.env not found"
+    exit 1
+fi
 
-# # Check if certbot succeeded
-# if [ $EXIT_CODE -eq 0 ]; then
-#     # Extract the folder name from the output
-#     FOLDER_NAME=$(echo "$OUTPUT" | grep -oP 'Certificate is saved at: /etc/letsencrypt/live/\K[^/]+' | head -1)
-    
-#     if [ -z "$FOLDER_NAME" ]; then
-#         echo "Error: Could not extract folder name from certbot output"
-#         exit 1
-#     fi
-    
-#     echo "Using certificate folder: $FOLDER_NAME"
-    
-#     # Copy certificates using the extracted folder name
-#     # Use fullchain.pem which contains both server cert and intermediate cert
-#     # This is needed for OCSP stapling to work properly
-#     cp /root/cert-data/etc/letsencrypt/live/${FOLDER_NAME}/fullchain.pem /root/data/ssl-wc/the.pem && \
-#     cp /root/cert-data/etc/letsencrypt/live/${FOLDER_NAME}/privkey.pem /root/data/ssl-wc/the.key && \
-#     echo "Certificates copied successfully" && \
-#     docker restart reverse-proxy && \
-#     echo "Nginx restarted successfully"
-# else
-#     echo "Error: Certbot failed to obtain certificate"
-#     exit 1
-# fi
+DOMAIN=$(grep -E "^DOMAIN=" "$SCRIPT_DIR/.env" | tail -n1 | cut -d= -f2-)
+
+if [[ -z "$DOMAIN" ]]; then
+    echo "Error: DOMAIN not set in $SCRIPT_DIR/.env"
+    exit 1
+fi
+
+# Ensure webroot directory exists for ACME challenges
+mkdir -p "$SCRIPT_DIR/certbot-webroot/.well-known/acme-challenge"
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting certificate renewal check for $DOMAIN"
+
+# Attempt renewal using webroot validation
+# --keep-until-expiring: only renew if cert is within 30 days of expiry
+# --webroot: use the directory served by Docker nginx at /.well-known/acme-challenge/
+if certbot certonly \
+    --webroot \
+    -w "$SCRIPT_DIR/certbot-webroot" \
+    -d "$DOMAIN" \
+    --non-interactive \
+    --agree-tos \
+    --keep-until-expiring; then
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Certbot succeeded, restarting nginx container"
+    docker restart nginx-proxy
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Nginx restarted successfully"
+else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Error: Certbot failed to renew certificate"
+    exit 1
+fi

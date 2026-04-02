@@ -1,8 +1,16 @@
-# Redirect HTTP to HTTPS
+# Redirect HTTP to HTTPS (with ACME challenge support for cert renewal)
 server {
     listen 80;
     server_name ${DOMAIN};
-    return 301 https://$host$request_uri;
+
+    # Let's Encrypt ACME challenge for certificate renewal
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }
 
 # HTTPS Server
