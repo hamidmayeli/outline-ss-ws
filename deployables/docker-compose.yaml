@@ -3,6 +3,8 @@ services:
     image: hamidmayeli/outline-over-ws:latest
     container_name: outline-server
     restart: always
+    mem_limit: ${OUTLINE_MEM_LIMIT:-400m}
+    memswap_limit: ${OUTLINE_MEM_LIMIT:-400m}
     labels:
       - "autoheal=true"
     healthcheck:
@@ -19,6 +21,8 @@ services:
     image: hamidmayeli/outline-manager:latest
     container_name: management-app
     restart: always
+    mem_limit: ${MANAGEMENT_MEM_LIMIT:-256m}
+    memswap_limit: ${MANAGEMENT_MEM_LIMIT:-256m}
     labels:
       - "autoheal=true"
     healthcheck:
@@ -49,6 +53,8 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     restart: always
+    mem_limit: ${NGINX_MEM_LIMIT:-96m}
+    memswap_limit: ${NGINX_MEM_LIMIT:-96m}
     environment:
       - DOMAIN=${DOMAIN}
       - TCP_PATH=${TCP_PATH}

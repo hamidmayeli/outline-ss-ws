@@ -33,7 +33,7 @@ show_usage() {
     echo "  -e    Email for SSL certificate (required)"
     echo "  -i    Installation directory (optional, default: /opt/outline-manager)"
     echo "  --stable  Use the stable management app image tag"
-    echo "  --continue <step>  Start from step number (1-10)"
+    echo "  --continue <step>  Start from step number (1-11)"
     echo "  -h    Show this help message"
     echo ""
     echo "Example:"
@@ -74,8 +74,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! [[ "$START_STEP" =~ ^[0-9]+$ ]] || [[ "$START_STEP" -lt 1 || "$START_STEP" -gt 10 ]]; then
-    print_error "Invalid --continue value: $START_STEP (expected 1-10)"
+if ! [["$START_STEP" =~ ^[0-9]+$ ]] || [[ "$START_STEP" -lt 1 || "$START_STEP" -gt 11 ]]; then
+    print_error "Invalid --continue value: $START_STEP (expected 1-11)"
     exit 1
 fi
 
@@ -562,6 +562,68 @@ RENEW_EOF
     echo "  - SSL renewal: Daily at 2:00 AM"
 }
 
+# Configure container memory limits based on server RAM
+configure_memory_limits() {
+    print_step "Configuring container memory limits based on server RAM..."
+
+    local total_mem_kb
+    total_mem_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local total_mem_mb=$((total_mem_kb / 1024))
+
+    print_info "Detected server RAM: ${total_mem_mb} MiB"
+
+    local outline_limit management_limit nginx_limit
+
+    if (( total_mem_mb <= 600 )); then
+        # 512 MiB server
+        outline_limit="200m"
+        management_limit="128m"
+        nginx_limit="64m"
+    elif (( total_mem_mb <= 1200 )); then
+        # 1 GiB server
+        outline_limit="400m"
+        management_limit="256m"
+        nginx_limit="96m"
+    elif (( total_mem_mb <= 2500 )); then
+        # 2 GiB server
+        outline_limit="900m"
+        management_limit="512m"
+        nginx_limit="128m"
+    elif (( total_mem_mb <= 5000 )); then
+        # 4 GiB server
+        outline_limit="2g"
+        management_limit="1g"
+        nginx_limit="256m"
+    else
+        # 8+ GiB server
+        outline_limit="4g"
+        management_limit="2g"
+        nginx_limit="512m"
+    fi
+
+    print_info "Setting limits: outline=${outline_limit}, management=${management_limit}, nginx=${nginx_limit}"
+
+    local env_path="$INSTALL_DIR/.env"
+
+    # Remove existing memory limit lines
+    sed -i '/^OUTLINE_MEM_LIMIT=/d' "$env_path" 2>/dev/null || true
+    sed -i '/^MANAGEMENT_MEM_LIMIT=/d' "$env_path" 2>/dev/null || true
+    sed -i '/^NGINX_MEM_LIMIT=/d' "$env_path" 2>/dev/null || true
+
+    # Append memory limits
+    cat >> "$env_path" <<EOF
+OUTLINE_MEM_LIMIT=$outline_limit
+MANAGEMENT_MEM_LIMIT=$management_limit
+NGINX_MEM_LIMIT=$nginx_limit
+EOF
+
+    # Restart containers to apply new limits
+    cd "$INSTALL_DIR"
+    docker compose up -d
+
+    print_success "Memory limits configured and applied"
+}
+
 # Display final information
 display_summary() {
     echo ""
@@ -617,7 +679,8 @@ main() {
     (( START_STEP <= 8 )) && start_services #8
     (( START_STEP <= 9 )) && setup_config_watcher #9
     (( START_STEP <= 10 )) && setup_cron_jobs #10
-    display_summary #11
+    (( START_STEP <= 11 )) && configure_memory_limits #11
+    display_summary
 }
 
 # Run main function
