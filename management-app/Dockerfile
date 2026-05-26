@@ -38,7 +38,6 @@ WORKDIR /app
 
 COPY ./frontend/package.json ./
 COPY ./frontend/pnpm-lock.yaml ./
-COPY ./frontend/pnpm-workspace.yaml ./
 RUN pnpm install
 
 COPY ./frontend .
