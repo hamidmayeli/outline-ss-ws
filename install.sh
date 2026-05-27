@@ -74,7 +74,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! [["$START_STEP" =~ ^[0-9]+$ ]] || [[ "$START_STEP" -lt 1 || "$START_STEP" -gt 11 ]]; then
+if ! [[ "$START_STEP" =~ ^[0-9]+$ ]] || [[ "$START_STEP" -lt 1 || "$START_STEP" -gt 11 ]]; then
     print_error "Invalid --continue value: $START_STEP (expected 1-11)"
     exit 1
 fi
