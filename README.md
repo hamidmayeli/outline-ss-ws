@@ -31,6 +31,7 @@ The installer downloads [deployables/docker-compose.yaml](deployables/docker-com
 - Management API with JWT auth, client CRUD, and Outline config synchronization.
   - Client configs
   - Setting limits per client
+  - Limit concurrent connections per client
   - `ssconf` support for dynamic access
   - Different reports and monitoring 
 - Automated SSL setup, firewall configuration, and scheduled updates.
