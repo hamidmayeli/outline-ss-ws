@@ -1,0 +1,67 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+jobs:
+  e2e:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, 'e2e'))
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+
+    steps:
+    - name: Get PR head ref
+      if: github.event_name == 'issue_comment'
+      id: pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+          core.setOutput('ref', pr.data.head.ref);
+          core.setOutput('sha', pr.data.head.sha);
+
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ steps.pr.outputs.ref || github.ref }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '22'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        version: 10
+
+    - name: Install E2E dependencies
+      working-directory: management-app/e2e
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Playwright browsers
+      working-directory: management-app/e2e
+      run: pnpm e2e:install:browsers
+
+    - name: Run E2E tests
+      working-directory: management-app/e2e
+      run: |
+        pnpm e2e:up-build
+        pnpm e2e:test
+
+    - name: Teardown E2E runtime
+      if: always()
+      working-directory: management-app/e2e
+      run: pnpm e2e:down
