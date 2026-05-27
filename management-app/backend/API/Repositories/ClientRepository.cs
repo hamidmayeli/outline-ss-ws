@@ -40,6 +40,11 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
 
     public Task<Client> CreateAsync(string name, long? limit)
     {
+        return CreateAsync(name, limit, isSingleConnection: false);
+    }
+
+    public Task<Client> CreateAsync(string name, long? limit, bool isSingleConnection)
+    {
         var secret = GenerateSecret();
 
         var client = new Client
@@ -50,6 +55,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             Cipher = "chacha20-ietf-poly1305",
             Limit = limit,
             IsActive = true,
+            IsSingleConnection = isSingleConnection,
             AccessKeyId = 0 // Will be assigned based on existing clients
         };
 
@@ -86,6 +92,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             existingClient.Secret = client.Secret;
             existingClient.Cipher = client.Cipher;
             existingClient.IsActive = client.IsActive;
+            existingClient.IsSingleConnection = client.IsSingleConnection;
             existingClient.AccessKeyId = client.AccessKeyId;
             existingClient.Limit = client.Limit;
 
@@ -126,6 +133,26 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
     {
         var client = await GetByNameAsync(name);
         return client != null;
+    }
+
+    public Task<Client> RegenerateSecretAsync(string id)
+    {
+        return WithFileLockAsync(async () =>
+        {
+            var clients = (await LoadAsync()).ToList();
+            var client = clients.FirstOrDefault(c => c.Id == id)
+                ?? throw new InvalidOperationException($"Client {id} not found");
+
+            client.Secret = GenerateSecret();
+            await SaveAsync(clients);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Regenerated secret for client: {ClientId}", id);
+            }
+
+            return client;
+        });
     }
 
     private static string GenerateSecret()

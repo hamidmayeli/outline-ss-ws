@@ -105,17 +105,20 @@ export interface Client {
   cipher: string;
   limit?: number | null;
   isActive: boolean;
+  isSingleConnection: boolean;
   usageLast30Days?: ClientUsage;
 }
 
 export interface CreateClientRequest {
   name: string;
   limit?: number | null;
+  isSingleConnection: boolean;
 }
 
 export interface UpdateClientRequest {
   name: string;
   limit?: number | null;
+  isSingleConnection: boolean;
 }
 
 class ApiError extends Error {

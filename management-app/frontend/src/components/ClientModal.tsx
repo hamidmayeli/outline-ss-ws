@@ -13,6 +13,7 @@ interface ClientModalProps {
 export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => {
   const [name, setName] = useState(client?.name || '');
   const [limitInput, setLimitInput] = useState(client?.limit != null ? formatBytes(client.limit) : '');
+  const [isSingleConnection, setIsSingleConnection] = useState(client?.isSingleConnection ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { token } = useAuth();
@@ -64,10 +65,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => 
 
     try {
       if (isEdit) {
-        const request: UpdateClientRequest = { name, limit: parsedLimit };
+        const request: UpdateClientRequest = { name, limit: parsedLimit, isSingleConnection };
         await api.updateClient(client.id, request);
       } else {
-        const request: CreateClientRequest = { name, limit: parsedLimit };
+        const request: CreateClientRequest = { name, limit: parsedLimit, isSingleConnection };
         await api.createClient(request);
       }
       onClose(true);
@@ -115,6 +116,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => 
               disabled={loading}
               placeholder="e.g. 500MB or 5GB"
             />
+          </div>
+
+          <div className="form-group form-group-checkbox">
+            <label htmlFor="singleConnection">
+              <input
+                type="checkbox"
+                id="singleConnection"
+                checked={isSingleConnection}
+                onChange={(e) => setIsSingleConnection(e.target.checked)}
+                disabled={loading}
+              />
+              Single Connection
+            </label>
+            <span className="form-hint">Regenerates secret on each config request, allowing only one active connection.</span>
           </div>
 
           {isEdit && (

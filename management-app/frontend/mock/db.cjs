@@ -8,6 +8,7 @@ const clients = [
     cipher: 'aes-256-gcm',
     limit: 10737418240,
     isActive: true,
+    isSingleConnection: false,
     usageLast30Days: {
       totalBytesTransferred: 7340032000,
       bytesUploaded: 2147483648,
@@ -23,6 +24,7 @@ const clients = [
     cipher: 'chacha20-ietf-poly1305',
     limit: 5368709120,
     isActive: true,
+    isSingleConnection: true,
     usageLast30Days: {
       totalBytesTransferred: 4294967296,
       bytesUploaded: 1342177280,
@@ -38,6 +40,7 @@ const clients = [
     cipher: 'aes-128-gcm',
     limit: null,
     isActive: false,
+    isSingleConnection: false,
     usageLast30Days: {
       totalBytesTransferred: 2147483648,
       bytesUploaded: 805306368,
