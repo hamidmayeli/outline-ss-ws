@@ -21,6 +21,7 @@ public static class ConfigEndpoints
     private static async Task<Results<Ok<ConfigResponse>, NotFound, Conflict<string>>> GetConfigAsync(
         string clientId,
         IClientRepository clientRepository,
+        IOutlineSyncService outlineSyncService,
         AppSettings appSettings)
     {
         var client = await clientRepository.GetByIdAsync(clientId);
@@ -30,6 +31,13 @@ public static class ConfigEndpoints
 
         if (!client.IsActive)
             return TypedResults.Conflict("Limits reached.");
+
+        if (client.IsSingleConnection)
+        {
+            client = await clientRepository.RegenerateSecretAsync(clientId);
+            var allClients = await clientRepository.GetAllAsync();
+            await outlineSyncService.SyncClientsToOutlineAsync(allClients);
+        }
 
         var config = await BuildConfig(client, appSettings);
 

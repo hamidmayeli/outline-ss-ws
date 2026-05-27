@@ -191,6 +191,32 @@
   cursor: not-allowed;
 }
 
+.form-group-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+}
+
+.form-group-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.form-group-checkbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.form-hint {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
 @media (max-width: 480px) {
   .modal-content {
     max-width: 100%;

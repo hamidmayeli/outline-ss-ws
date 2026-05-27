@@ -456,4 +456,51 @@ public class UserInteractsWithClients : TestCaseBase
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task When_CreateClient_WithSingleConnection_ReturnsCreatedWithFlag()
+    {
+        var request = new CreateClientRequest
+        {
+            Name = "SingleConnClient",
+            IsSingleConnection = true
+        };
+
+        var client = _fixture.GetAuthenticatedClient();
+        var response = await client.PostAsJsonAsync("/api/v1/clients/", request);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var clientResponse = await response.Content.ReadFromJsonAsync<ClientResponse>();
+        Assert.NotNull(clientResponse);
+        Assert.True(clientResponse.IsSingleConnection);
+    }
+
+    [Fact]
+    public async Task When_UpdateClient_ToggleSingleConnection_ReturnsUpdatedFlag()
+    {
+        var clientId = Guid.NewGuid().ToString();
+        await _fixture.SetClient([new Client
+        {
+            Id = clientId,
+            Name = "NormalClient",
+            Secret = "secret",
+            IsSingleConnection = false
+        }]);
+
+        var request = new UpdateClientRequest
+        {
+            Name = "NormalClient",
+            IsSingleConnection = true
+        };
+
+        var client = _fixture.GetAuthenticatedClient();
+        var response = await client.PutAsJsonAsync($"/api/v1/clients/{clientId}", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var clientResponse = await response.Content.ReadFromJsonAsync<ClientResponse>();
+        Assert.NotNull(clientResponse);
+        Assert.True(clientResponse.IsSingleConnection);
+    }
 }

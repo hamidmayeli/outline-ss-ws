@@ -125,6 +125,11 @@
   color: var(--text-secondary);
 }
 
+.single-conn-badge {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+}
+
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;

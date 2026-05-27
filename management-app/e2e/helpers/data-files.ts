@@ -14,6 +14,7 @@ type SeedClient = {
   Cipher: string;
   Limit: number | null;
   IsActive: boolean;
+  IsSingleConnection: boolean;
   AccessKeyId: number;
 };
 
@@ -85,6 +86,7 @@ export const seedSamples = {
       Cipher: 'chacha20-ietf-poly1305',
       Limit: null,
       IsActive: true,
+      IsSingleConnection: false,
       AccessKeyId: 1,
     },
     {
@@ -94,7 +96,20 @@ export const seedSamples = {
       Cipher: 'chacha20-ietf-poly1305',
       Limit: 1073741824,
       IsActive: false,
+      IsSingleConnection: false,
       AccessKeyId: 2,
+    },
+  ] satisfies SeedClient[],
+  singleConnectionClient: [
+    {
+      Id: 'e2e-single-conn',
+      Name: 'E2E Single Conn',
+      Secret: 'single-conn-secret',
+      Cipher: 'chacha20-ietf-poly1305',
+      Limit: null,
+      IsActive: true,
+      IsSingleConnection: true,
+      AccessKeyId: 3,
     },
   ] satisfies SeedClient[],
 };

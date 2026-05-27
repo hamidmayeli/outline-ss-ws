@@ -189,6 +189,9 @@ export const Clients: React.FC = () => {
                     <span className={client.isActive ? '' : 'client-name-inactive'}>
                       {client.name}
                     </span>
+                    {client.isSingleConnection && (
+                      <span className="single-conn-badge" title="Single Connection">🔒</span>
+                    )}
                   </td>
                   <td className="status-column">
                     <span className={`status-badge ${client.isActive ? 'active' : 'inactive'}`}>
