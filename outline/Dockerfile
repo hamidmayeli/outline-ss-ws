@@ -1,3 +1,33 @@
+# ============== Fetch/Prepare Stage (Runs Natively and Fast) ==============
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS fetcher
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    wget \
+    tar \
+    && rm -rf /var/lib/apt/lists/*
+
+# Automatically injected by Docker Buildx
+ARG TARGETARCH
+
+WORKDIR /download
+
+# Fetch the version once natively, map standard Docker TARGETARCH to Outline's release naming conventions
+RUN LATEST_VERSION=$(curl -s https://api.github.com/repos/OutlineFoundation/tunnel-server/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/') && \
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        ARCH_SUFFIX="x86_64"; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        ARCH_SUFFIX="arm64"; \
+    else \
+        ARCH_SUFFIX="$TARGETARCH"; \
+    fi && \
+    echo "Downloading Outline Server version: $LATEST_VERSION for architecture: $ARCH_SUFFIX" && \
+    wget -q https://github.com/OutlineFoundation/tunnel-server/releases/download/v${LATEST_VERSION}/outline-ss-server_${LATEST_VERSION}_linux_${ARCH_SUFFIX}.tar.gz && \
+    tar -xzf outline-ss-server_${LATEST_VERSION}_linux_${ARCH_SUFFIX}.tar.gz && \
+    mv outline-ss-server /usr/local/bin/
+
+# ============== Final Multi-Arch Target Stage ==============
 FROM debian:bookworm-slim
 
 # Set environment variables
@@ -5,28 +35,18 @@ ENV OUTLINE_VERSION=latest \
     OUTLINE_CONFIG=/etc/outline/config.yaml \
     PROMETHEUS_RETENTION=30d
 
-# Install dependencies
+# Install dependencies (This installs native arm64 or amd64 Prometheus depending on target platform)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    wget \
-    tar \
     procps \
     prometheus && \
     rm -rf /var/lib/apt/lists/*
 
-# Download and install outline-ss-server
-RUN LATEST_VERSION=$(curl -s https://api.github.com/repos/OutlineFoundation/tunnel-server/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/') && \
-    echo "Installing Outline Server version: $LATEST_VERSION"  && \
-    wget -q https://github.com/OutlineFoundation/tunnel-server/releases/download/v${LATEST_VERSION}/outline-ss-server_${LATEST_VERSION}_linux_x86_64.tar.gz  && \
-    tar -xzf outline-ss-server_${LATEST_VERSION}_linux_x86_64.tar.gz && \
-    mv outline-ss-server /usr/local/bin/ && \
-    chmod +x /usr/local/bin/outline-ss-server && \
-    rm outline-ss-server_${LATEST_VERSION}_linux_x86_64.tar.gz
-
-# Verify installation
-RUN outline-ss-server --version
+# Copy the natively downloaded and extracted binary directly from the fetcher stage
+COPY --from=fetcher /usr/local/bin/outline-ss-server /usr/local/bin/outline-ss-server
+RUN chmod +x /usr/local/bin/outline-ss-server
 
 # Create config directory
 RUN mkdir -p /etc/outline
