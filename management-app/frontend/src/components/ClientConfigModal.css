@@ -150,4 +150,52 @@
   .btn-copy {
     width: 100%;
   }
+
+  .qr-code-box {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-copy-qr {
+    width: 100%;
+  }
+}
+
+.qr-code-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.qr-code-box canvas {
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem;
+  background: white;
+}
+
+.btn-copy-qr {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.btn-copy-qr:hover {
+  background: var(--primary-hover);
+}
+
+.btn-copy-qr.copied {
+  background: var(--success-color);
 }
