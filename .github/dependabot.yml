@@ -10,6 +10,8 @@ updates:
       frontend:
         patterns:
           - "*"
+    cooldown:
+      default-days: 3
 
   # Enable version updates for NuGet (.NET backend)
   - package-ecosystem: "nuget"
