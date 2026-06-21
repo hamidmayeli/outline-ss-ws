@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     # QEMU is removed because our new Dockerfile relies on true multi-arch cross-compilation
     - name: Set up Docker Buildx
