@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AreaChart as RechartsAreaChart,
   Area,
+  BarChart as RechartsBarChart,
+  Bar,
   ResponsiveContainer,
   Legend,
   Tooltip,
@@ -27,6 +29,8 @@ type WeekHourPoint = {
   label: string;
   [key: string]: number | string;
 };
+
+type GroupByMode = 'default' | 'daily';
 
 const LINE_COLORS = [
   '#4285F4', '#EA4335', '#FBBC04', '#34A853', '#FF6D00',
@@ -65,6 +69,7 @@ export const WeeklyComparisonChart: React.FC = () => {
   const [error, setError] = useState('');
   const [weekSeries, setWeekSeries] = useState<WeekSeries[]>([]);
   const [chartData, setChartData] = useState<WeekHourPoint[]>([]);
+  const [groupBy, setGroupBy] = useState<GroupByMode>('default');
   const { offsetMinutes, setOffsetMinutes, options } = useTimeZone();
   const offsetMs = offsetMinutes * 60 * 1000;
 
@@ -142,6 +147,32 @@ export const WeeklyComparisonChart: React.FC = () => {
     }, 0);
   }, [chartData, weekSeries]);
 
+  const dailyChartData = useMemo(() => {
+    if (chartData.length === 0 || weekSeries.length === 0) return [];
+
+    return DAY_LABELS.map((dayLabel, dayIndex) => {
+      const startHour = dayIndex * 24;
+      const endHour = startHour + 24;
+      const daySlice = chartData.slice(startHour, endHour);
+
+      const base: WeekHourPoint = {
+        hourIndex: dayIndex,
+        label: dayLabel,
+      };
+
+      weekSeries.forEach((series) => {
+        const dayTotal = daySlice.reduce((sum, point) => {
+          const value = point[series.key];
+          return sum + (typeof value === 'number' ? value : 0);
+        }, 0);
+
+        base[series.key] = dayTotal;
+      });
+
+      return base;
+    });
+  }, [chartData, weekSeries]);
+
   const WeeklyTooltip = ({
     active,
     payload,
@@ -180,10 +211,18 @@ export const WeeklyComparisonChart: React.FC = () => {
         <div>
           <h1>Weekly Comparison</h1>
           <p className="weeklychart-subtitle">
-            Hourly usage from the last 30 days ({formatBytes(totalBytes)})
+            {groupBy === 'default'
+              ? `Hourly usage from the last 30 days (${formatBytes(totalBytes)})`
+              : `Daily grouped usage from the last 30 days (${formatBytes(totalBytes)})`}
           </p>
         </div>
         <div className="weeklychart-controls">
+          <label className="groupby-label">
+            <select value={groupBy} onChange={(event) => setGroupBy(event.target.value as GroupByMode)}>
+              <option value="default">Default</option>
+              <option value="daily">Daily</option>
+            </select>
+          </label>
           <label className="timezone-label">
             <select value={offsetMinutes} onChange={(event) => setOffsetMinutes(Number(event.target.value))}>
               {options.map((option) => (
@@ -207,29 +246,50 @@ export const WeeklyComparisonChart: React.FC = () => {
         </div>
       ) : (
         <div className="weeklychart-content">
-          <ResponsiveContainer width="100%" height={480}>
-            <RechartsAreaChart data={chartData} margin={{ top: 20, right: 24, left: 12, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" interval={11} />
-              <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
-              <Tooltip content={<WeeklyTooltip />} />
-              <Legend />
-              <Brush dataKey="label" height={22} travellerWidth={12} />
-              {weekSeries.map((series) => (
-                <Area
-                  key={series.key}
-                  type="monotone"
-                  dataKey={series.key}
-                  name={series.name}
-                  stroke={series.color}
-                  strokeWidth={2}
-                  dot={false}
-                  fill={series.color}
-                  fillOpacity={0.18}
-                />
-              ))}
-            </RechartsAreaChart>
-          </ResponsiveContainer>
+          {groupBy === 'default' ? (
+            <ResponsiveContainer width="100%" height={480}>
+              <RechartsAreaChart data={chartData} margin={{ top: 20, right: 24, left: 12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" interval={11} />
+                <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
+                <Tooltip content={<WeeklyTooltip />} />
+                <Legend />
+                <Brush dataKey="label" height={22} travellerWidth={12} />
+                {weekSeries.map((series) => (
+                  <Area
+                    key={series.key}
+                    type="monotone"
+                    dataKey={series.key}
+                    name={series.name}
+                    stroke={series.color}
+                    strokeWidth={2}
+                    dot={false}
+                    fill={series.color}
+                    fillOpacity={0.18}
+                  />
+                ))}
+              </RechartsAreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <ResponsiveContainer width="100%" height={480}>
+              <RechartsBarChart data={dailyChartData} margin={{ top: 20, right: 24, left: 12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis tickFormatter={(value) => formatBytes(value)} width={90} />
+                <Tooltip content={<WeeklyTooltip />} />
+                <Legend />
+                {weekSeries.map((series) => (
+                  <Bar
+                    key={series.key}
+                    dataKey={series.key}
+                    name={series.name}
+                    fill={series.color}
+                    // stackId="daily-usage"
+                  />
+                ))}
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
     </div>
