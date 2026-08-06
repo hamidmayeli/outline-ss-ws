@@ -42,27 +42,21 @@ mkdir -p "$SCRIPT_DIR/certbot-webroot/.well-known/acme-challenge"
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting certificate renewal check for $DOMAIN"
 
 # Attempt renewal using webroot validation
+# --cert-name: explicit target certificate name to prevent -0001 suffix directories
+# --expand: safely adds new domains to the existing certificate
 # --keep-until-expiring: only renew if cert is within 30 days of expiry
-# --webroot: use the directory served by Docker nginx at /.well-known/acme-challenge/
 if certbot certonly \
     --webroot \
     -w "$SCRIPT_DIR/certbot-webroot" \
+    --cert-name "$DOMAIN" \
     -d "$DOMAIN" \
     --non-interactive \
     --agree-tos \
     --keep-until-expiring; then
 
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Certbot succeeded, ensuring nginx uses the current live certificate path"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Certbot succeeded, verifying certificate paths"
 
     LIVE_DIR="/etc/letsencrypt/live/$DOMAIN"
-    LATEST_DIR="$(find /etc/letsencrypt/live -maxdepth 1 -mindepth 1 -type d -name "${DOMAIN}-*" 2>/dev/null | sort | tail -n 1 || true)"
-
-    if [[ -n "$LATEST_DIR" ]]; then
-        if [[ -e "$LIVE_DIR" && ! -L "$LIVE_DIR" ]]; then
-            rm -rf "$LIVE_DIR"
-        fi
-        ln -sfn "$LATEST_DIR" "$LIVE_DIR"
-    fi
 
     if [[ ! -f "$LIVE_DIR/fullchain.pem" || ! -f "$LIVE_DIR/privkey.pem" ]]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Error: expected certificate files are missing under $LIVE_DIR"
