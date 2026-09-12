@@ -186,12 +186,19 @@ export const Clients: React.FC = () => {
               {sortedClients.map((client) => (
                 <tr key={client.id}>
                   <td>
-                    <span className={client.isActive ? '' : 'client-name-inactive'}>
-                      {client.name}
-                    </span>
-                    {client.isSingleConnection && (
-                      <span className="single-conn-badge" title="Single Connection">🔒</span>
-                    )}
+                    <div>
+                      <span className={client.isActive ? '' : 'client-name-inactive'}>
+                        {client.name}
+                      </span>
+                      {client.isSingleConnection && (
+                        <span className="single-conn-badge" title="Single Connection">🔒</span>
+                      )}
+                    </div>
+                    <div>                      
+                      <span className={`status-badge merged ${client.isActive ? 'active' : 'inactive'}`}>
+                        {client.isActive ? `Active${client.expiresOn ? ` (Until ${client.expiresOn.slice(0, 10)})` : ''}` : 'Inactive'}
+                      </span>
+                    </div>
                   </td>
                   <td className="status-column">
                     <span className={`status-badge ${client.isActive ? 'active' : 'inactive'}`}>

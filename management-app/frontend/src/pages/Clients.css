@@ -150,6 +150,10 @@
   color: var(--warning-color);
 }
 
+.status-badge.merged {
+  display: none;
+}
+
 .usage-stat {
   font-size: 0.875rem;
   color: var(--text-secondary);
@@ -235,6 +239,11 @@
 
   .status-column {
     display: none;
+  }
+
+  .status-badge.merged {
+    display: inline-block;
+    margin-top: 1rem;
   }
 
   .actions-cell {

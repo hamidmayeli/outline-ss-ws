@@ -24,6 +24,7 @@ const clients = [
     cipher: 'chacha20-ietf-poly1305',
     limit: 5368709120,
     isActive: true,
+    expiresOn: '2034-12-31T00:00:00Z',
     isSingleConnection: true,
     usageLast30Days: {
       totalBytesTransferred: 4294967296,
