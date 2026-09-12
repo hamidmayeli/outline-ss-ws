@@ -5,6 +5,7 @@ public class ClientResponse
     public required string Id { get; set; }
     public required string Name { get; set; }
     public long? Limit { get; set; }
+    public DateTime? ExpiresOn { get; set; }
     public bool IsActive { get; set; }
     public bool IsSingleConnection { get; set; }
     public int AccessKeyId { get; set; }

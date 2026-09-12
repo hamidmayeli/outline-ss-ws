@@ -10,6 +10,7 @@ public class Client
     public required string Secret { get; set; }
     public string Cipher { get; set; } = "chacha20-ietf-poly1305";
     public long? Limit { get; set; }
+    public DateTime? ExpiresOn { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsSingleConnection { get; set; }
     public int AccessKeyId { get; set; }

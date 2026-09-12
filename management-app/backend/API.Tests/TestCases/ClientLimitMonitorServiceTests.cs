@@ -158,4 +158,34 @@ public class ClientLimitMonitorServiceTests
         await outlineSyncService.Received(1)
             .SyncClientsToOutlineAsync(Arg.Is<IEnumerable<Client>>(clients => clients.First().IsActive == true));
     }
+
+    [Fact]
+    public async Task When_ExpiryIsDue_DeactivatesAndSyncs()
+    {
+        var clientRepository = Substitute.For<IClientRepository>();
+        var metricsService = Substitute.For<IMetricsService>();
+        var outlineSyncService = Substitute.For<IOutlineSyncService>();
+        var client = new Client
+        {
+            Id = "client-1",
+            Name = "Client One",
+            Secret = "secret",
+            IsActive = true,
+            ExpiresOn = DateTime.UtcNow.AddMinutes(-1),
+            AccessKeyId = 1
+        };
+
+        clientRepository.GetAllAsync().Returns([client], [client]);
+        metricsService.GetClientUsageLast30DaysAsync(client.Id)
+            .Returns(new ClientUsageResponse { TotalBytesTransferred = 0 });
+
+        var service = CreateService(clientRepository, metricsService, outlineSyncService);
+
+        await InvokeCheckLimitsAsync(service, CancellationToken.None);
+
+        await clientRepository.Received(1)
+            .UpdateAsync(client.Id, Arg.Is<Client>(c => c.IsActive == false));
+        await outlineSyncService.Received(1)
+            .SyncClientsToOutlineAsync(Arg.Is<IEnumerable<Client>>(clients => clients.First().IsActive == false));
+    }
 }

@@ -13,6 +13,7 @@ interface ClientModalProps {
 export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => {
   const [name, setName] = useState(client?.name || '');
   const [limitInput, setLimitInput] = useState(client?.limit != null ? formatBytes(client.limit) : '');
+  const [expiresOn, setExpiresOn] = useState(client?.expiresOn?.slice(0, 10) || '');
   const [isSingleConnection, setIsSingleConnection] = useState(client?.isSingleConnection ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -65,10 +66,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => 
 
     try {
       if (isEdit) {
-        const request: UpdateClientRequest = { name, limit: parsedLimit, isSingleConnection };
+        const request: UpdateClientRequest = {
+          name,
+          limit: parsedLimit,
+          expiresOn: expiresOn ? `${expiresOn}T00:00:00.000Z` : null,
+          isSingleConnection,
+        };
         await api.updateClient(client.id, request);
       } else {
-        const request: CreateClientRequest = { name, limit: parsedLimit, isSingleConnection };
+        const request: CreateClientRequest = {
+          name,
+          limit: parsedLimit,
+          expiresOn: expiresOn ? `${expiresOn}T00:00:00.000Z` : null,
+          isSingleConnection,
+        };
         await api.createClient(request);
       }
       onClose(true);
@@ -115,6 +126,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({ client, onClose }) => 
               onChange={(e) => setLimitInput(e.target.value)}
               disabled={loading}
               placeholder="e.g. 500MB or 5GB"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="expiresOn">Expires On</label>
+            <input
+              type="date"
+              id="expiresOn"
+              value={expiresOn}
+              onChange={(e) => setExpiresOn(e.target.value)}
+              disabled={loading}
             />
           </div>
 

@@ -195,7 +195,7 @@ export const Clients: React.FC = () => {
                   </td>
                   <td className="status-column">
                     <span className={`status-badge ${client.isActive ? 'active' : 'inactive'}`}>
-                      {client.isActive ? 'Active' : 'Inactive'}
+                      {client.isActive ? `Active${client.expiresOn ? ` (Until ${client.expiresOn.slice(0, 10)})` : ''}` : 'Inactive'}
                     </span>
                   </td>
                   <td>

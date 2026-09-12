@@ -62,7 +62,9 @@ public class ClientLimitMonitorService : BackgroundService
 
             var usage = await _metricsService.GetClientUsageLast30DaysAsync(client.Id);
             bool isNotOverLimit() => usage.TotalBytesTransferred <= client.Limit.Value;
-            var shouldBeActive = client.Limit is null || isNotOverLimit();
+            var shouldBeActive =
+                (client.Limit is null || isNotOverLimit()) &&
+                (client.ExpiresOn is null || client.ExpiresOn > DateTime.UtcNow);
 
             if (client.IsActive == shouldBeActive)
             {
