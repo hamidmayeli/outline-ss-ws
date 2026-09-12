@@ -13,6 +13,7 @@ type SeedClient = {
   Secret: string;
   Cipher: string;
   Limit: number | null;
+  ExpiresOn?: string | null;
   IsActive: boolean;
   IsSingleConnection: boolean;
   AccessKeyId: number;
@@ -85,6 +86,7 @@ export const seedSamples = {
       Secret: 'alpha-secret-key',
       Cipher: 'chacha20-ietf-poly1305',
       Limit: null,
+      ExpiresOn: null,
       IsActive: true,
       IsSingleConnection: false,
       AccessKeyId: 1,
@@ -95,6 +97,7 @@ export const seedSamples = {
       Secret: 'beta-secret-key',
       Cipher: 'chacha20-ietf-poly1305',
       Limit: 1073741824,
+      ExpiresOn: null,
       IsActive: false,
       IsSingleConnection: false,
       AccessKeyId: 2,
@@ -107,6 +110,7 @@ export const seedSamples = {
       Secret: 'single-conn-secret',
       Cipher: 'chacha20-ietf-poly1305',
       Limit: null,
+      ExpiresOn: null,
       IsActive: true,
       IsSingleConnection: true,
       AccessKeyId: 3,

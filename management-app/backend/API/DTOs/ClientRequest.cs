@@ -4,6 +4,7 @@ public class CreateClientRequest
 {
     public required string Name { get; set; }
     public long? Limit { get; set; }
+    public DateTime? ExpiresOn { get; set; }
     public bool IsSingleConnection { get; set; }
 }
 
@@ -11,5 +12,6 @@ public class UpdateClientRequest
 {
     public required string Name { get; set; }
     public long? Limit { get; set; }
+    public DateTime? ExpiresOn { get; set; }
     public bool IsSingleConnection { get; set; }
 }

@@ -76,7 +76,7 @@ public static class ClientEndpoints
             return TypedResults.BadRequest("Client name already exists");
         }
 
-        var createdClient = await clientRepository.CreateAsync(request.Name, request.Limit, request.IsSingleConnection);
+        var createdClient = await clientRepository.CreateAsync(request.Name, request.Limit, request.IsSingleConnection, request.ExpiresOn);
         
         // Sync to outline server
         var allClients = await clientRepository.GetAllAsync();
@@ -114,11 +114,14 @@ public static class ClientEndpoints
         }
 
         existingClient.Limit = request.Limit;
+        existingClient.ExpiresOn = request.ExpiresOn;
         existingClient.IsSingleConnection = request.IsSingleConnection;
 
         var usage = await metricsService.GetClientUsageLast30DaysAsync(existingClient.Id);
         var oldIsActive = existingClient.IsActive;
-        existingClient.IsActive = existingClient.Limit == null || usage.TotalBytesTransferred < existingClient.Limit;
+        existingClient.IsActive =
+            (existingClient.Limit == null || usage.TotalBytesTransferred < existingClient.Limit) &&
+            (existingClient.ExpiresOn == null || existingClient.ExpiresOn > DateTime.UtcNow);
 
         var updatedClient = await clientRepository.UpdateAsync(id, existingClient);
 
@@ -171,6 +174,7 @@ public static class ClientEndpoints
             Id = client.Id,
             Name = client.Name,
             Limit = client.Limit,
+            ExpiresOn = client.ExpiresOn,
             IsActive = client.IsActive,
             IsSingleConnection = client.IsSingleConnection,
             AccessKeyId = client.AccessKeyId,

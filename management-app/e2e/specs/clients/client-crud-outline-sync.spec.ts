@@ -13,6 +13,7 @@ test.describe('Clients - CRUD and Outline sync', () => {
     await page.getByRole('button', { name: '+ Add Client' }).click();
     await page.getByLabel('Client Name').fill('E2E CRUD Client');
     await page.getByLabel('Data Limit').fill('2GB');
+    await page.getByLabel('Expires On').fill('2099-12-31');
     await page.getByRole('button', { name: 'Save' }).click();
 
     const createdRow = page.locator('tr', { hasText: 'E2E CRUD Client' });
@@ -23,20 +24,24 @@ test.describe('Clients - CRUD and Outline sync', () => {
       Name: string;
       Secret: string;
       AccessKeyId: number;
+      ExpiresOn?: string | null;
     }>;
 
     const createdClient = clientsAfterCreate.find((client) => client.Name === 'E2E CRUD Client');
     expect(createdClient).toBeDefined();
+    expect(createdClient!.ExpiresOn).toContain('2099-12-31');
 
     await expect.poll(async () => readOutlineConfig()).toContain(`id: ${createdClient!.AccessKeyId}`);
     await expect.poll(async () => readOutlineConfig()).toContain(`secret: ${createdClient!.Secret}`);
 
     await createdRow.locator('button[title="Edit"]').click();
     await page.getByLabel('Client Name').fill('E2E CRUD Client Updated');
+    await page.getByLabel('Expires On').fill('2098-12-31');
     await page.getByRole('button', { name: 'Save' }).click();
 
     const updatedRow = page.locator('tr', { hasText: 'E2E CRUD Client Updated' });
     await expect(updatedRow).toBeVisible();
+    await expect.poll(async () => readRuntimeFile('clients.json')).toContain('2098-12-31');
 
     await updatedRow.locator('button[title="Delete"]').click();
     await page.getByRole('button', { name: 'Delete' }).click();

@@ -104,6 +104,7 @@ export interface Client {
   secret: string;
   cipher: string;
   limit?: number | null;
+  expiresOn?: string | null;
   isActive: boolean;
   isSingleConnection: boolean;
   usageLast30Days?: ClientUsage;
@@ -112,12 +113,14 @@ export interface Client {
 export interface CreateClientRequest {
   name: string;
   limit?: number | null;
+  expiresOn?: string | null;
   isSingleConnection: boolean;
 }
 
 export interface UpdateClientRequest {
   name: string;
   limit?: number | null;
+  expiresOn?: string | null;
   isSingleConnection: boolean;
 }
 

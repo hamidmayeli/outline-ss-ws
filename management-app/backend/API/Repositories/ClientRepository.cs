@@ -38,12 +38,12 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
         return await LoadAsync();
     }
 
-    public Task<Client> CreateAsync(string name, long? limit)
+    public Task<Client> CreateAsync(string name, long? limit, DateTime? expiresOn)
     {
-        return CreateAsync(name, limit, isSingleConnection: false);
+        return CreateAsync(name, limit, isSingleConnection: false, expiresOn);
     }
 
-    public Task<Client> CreateAsync(string name, long? limit, bool isSingleConnection)
+    public Task<Client> CreateAsync(string name, long? limit, bool isSingleConnection, DateTime? expiresOn)
     {
         var secret = GenerateSecret();
 
@@ -54,7 +54,8 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             Secret = secret,
             Cipher = "chacha20-ietf-poly1305",
             Limit = limit,
-            IsActive = true,
+            ExpiresOn = expiresOn,
+            IsActive = expiresOn is null || expiresOn > DateTime.UtcNow,
             IsSingleConnection = isSingleConnection,
             AccessKeyId = 0 // Will be assigned based on existing clients
         };
@@ -95,6 +96,7 @@ public class ClientRepository : RepositoryBase<Client>, IClientRepository
             existingClient.IsSingleConnection = client.IsSingleConnection;
             existingClient.AccessKeyId = client.AccessKeyId;
             existingClient.Limit = client.Limit;
+            existingClient.ExpiresOn = client.ExpiresOn;
 
             await SaveAsync(clients);
 
