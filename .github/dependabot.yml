@@ -7,7 +7,11 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      frontend:
+      frontend-version-updates:
+        patterns:
+          - "*"
+      frontend-security-updates:
+        applies-to: security-updates
         patterns:
           - "*"
     cooldown:
@@ -20,7 +24,11 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      backend:
+      backend-version-updates:
+        patterns:
+          - "*"
+      backend-security-updates:
+        applies-to: security-updates
         patterns:
           - "*"
 
@@ -30,12 +38,28 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      management-docker-version-updates:
+        patterns:
+          - "*"
+      management-docker-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker"
     directory: "/outline"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      outline-docker-version-updates:
+        patterns:
+          - "*"
+      outline-docker-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -44,6 +68,10 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     groups:
-      actions:
+      actions-version-updates:
+        patterns:
+          - "*"
+      actions-security-updates:
+        applies-to: security-updates
         patterns:
           - "*"
