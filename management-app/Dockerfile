@@ -1,5 +1,5 @@
 # Force the SDK to run natively on the host architecture (amd64) for maximum speed
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 
 ARG TARGETARCH
 
@@ -65,7 +65,7 @@ RUN pnpm run build
 # Runtime Image
 # ==========================
 # This automatically pulls the right native architecture (amd64 or arm64) for the final layer
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS final
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
